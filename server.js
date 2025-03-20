@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Constants
 const EPOCH_DATE = new Date(2000, 0, 1); // Reference date for Hilan system: January 1, 2000
