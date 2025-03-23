@@ -13,7 +13,6 @@ const elements = {
     
     // Table view elements
     hoursTableBody: document.getElementById('hours-table-body'),
-    totalDuration: document.getElementById('total-duration'),
     totalFormatted: document.getElementById('total-formatted'),
     
     // Summary elements
@@ -336,142 +335,145 @@ const elements = {
     }
   }
   
-  // Function to generate the calendar view
-  function generateCalendarView() {
-    elements.calendarGrid.innerHTML = '';
-    
-    if (!allMonthEntries || allMonthEntries.length === 0) return;
-    
-    const [day, month, year] = parseDate(allMonthEntries[0].date);
-    
-    elements.calendarMonthName.textContent = `${hebrewMonths[month-1]} ${year}`;
-    
-    const firstDayOfMonth = createDateObject(1, month, year);
-    const startingDayOfWeek = firstDayOfMonth.getDay();
-    const lastDayOfMonth = new Date(year, month, 0).getDate();
-    
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    
-    // Create a map of entries by day for easier access
-    const entriesByDay = {};
-    allMonthEntries.forEach(entry => {
-      const [entryDay] = parseDate(entry.date);
-      entriesByDay[entryDay] = entry;
-    });
-    
-    // Add empty cells for days before the 1st of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      const emptyCell = document.createElement('div');
-      emptyCell.className = 'calendar-day empty';
-      elements.calendarGrid.appendChild(emptyCell);
-    }
-    
-    // Create cells for each day of the month
-    for (let dayOfMonth = 1; dayOfMonth <= lastDayOfMonth; dayOfMonth++) {
-      const dayCell = document.createElement('div');
-      const dayDate = createDateObject(dayOfMonth, month, year);
-      const dayOfWeek = dayDate.getDay();
-      const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
-      const isFutureDay = dayDate > currentDate;
-      const isCurrentDay = dayDate.toDateString() === currentDate.toDateString();
-      
-      // Build class list based on day properties
-      let dayClasses = 'calendar-day';
-      if (isWeekend) dayClasses += ' weekend';
-      if (isFutureDay) dayClasses += ' future-day';
-      if (isCurrentDay) dayClasses += ' current-day';
-      
-      dayCell.className = dayClasses;
-      
-      const entry = entriesByDay[dayOfMonth];
-      
-      // Determine day type based on various factors
-      const dayType = workingDayTypes[`${dayOfMonth}/${month}/${year}`] || 
-                     (isWeekend || (entry && entry.isHoliday) ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
-      
-      // Add vacation styling if needed
-      if (dayType === DAY_TYPES.VACATION) {
-        dayCell.classList.add('vacation-day');
-        dayCell.appendChild(createVacationBadge());
-      }
-      
-      // Add day number
-      const dayNumber = document.createElement('div');
-      dayNumber.className = 'day-number';
-      dayNumber.textContent = dayOfMonth;
-      dayCell.appendChild(dayNumber);
-      
-      // Add hours if present
-      if (entry && entry.time && isValidTimeFormat(entry.time)) {
-        const dayHours = document.createElement('div');
-        dayHours.className = 'day-hours';
-        dayHours.textContent = entry.time;
-        dayCell.appendChild(dayHours);
-      }
-      
-      // Add holiday name if present
-      if (entry && entry.holidayName) {
-        const holidayNameEl = document.createElement('div');
-        holidayNameEl.className = 'holiday-name';
-        holidayNameEl.textContent = entry.holidayName;
-        dayCell.appendChild(holidayNameEl);
-      }
-      
-      // Add day type selector
-      const dayTypeContainer = document.createElement('div');
-      dayTypeContainer.className = 'day-type';
-      
-      const dayTypeSelect = document.createElement('select');
-      dayTypeSelect.className = 'day-type-select-calendar';
-      dayTypeSelect.dataset.date = `${dayOfMonth}/${month}/${year}`;
-      
-      // Regular day option
-      const regularOption = document.createElement('option');
-      regularOption.value = DAY_TYPES.REGULAR;
-      regularOption.textContent = DAY_TYPES.REGULAR;
-      regularOption.selected = dayType === DAY_TYPES.REGULAR && !(entry && entry.isHoliday);
-      
-      // Vacation day option
-      const vacationOption = document.createElement('option');
-      vacationOption.value = DAY_TYPES.VACATION;
-      vacationOption.textContent = DAY_TYPES.VACATION;
-      vacationOption.selected = dayType === DAY_TYPES.VACATION || (entry && entry.isHoliday);
-      
-      dayTypeSelect.appendChild(regularOption);
-      dayTypeSelect.appendChild(vacationOption);
-      dayTypeContainer.appendChild(dayTypeSelect);
-      dayCell.appendChild(dayTypeContainer);
-      
-      elements.calendarGrid.appendChild(dayCell);
-    }
-    
-    // Add event listeners to day type selectors
-    document.querySelectorAll('.day-type-select-calendar').forEach(select => {
-      select.addEventListener('change', function() {
-        const date = this.dataset.date;
-        const type = this.value;
-        
-        // Handle UI update for the calendar day
-        const dayCell = this.closest('.calendar-day');
-        if (type === DAY_TYPES.VACATION) {
-          dayCell.classList.add('vacation-day');
-          if (!dayCell.querySelector('.vacation-badge')) {
-            dayCell.insertBefore(createVacationBadge(), dayCell.firstChild);
-          }
-        } else {
-          dayCell.classList.remove('vacation-day');
-          const badge = dayCell.querySelector('.vacation-badge');
-          if (badge) {
-            dayCell.removeChild(badge);
-          }
-        }
-        
-        // Update the global state and other views
-        handleDayTypeChange(date, type);
-      });
-    });
+// Function to generate the calendar view
+// Function to generate the calendar view
+function generateCalendarView() {
+  elements.calendarGrid.innerHTML = '';
+  
+  if (!allMonthEntries || allMonthEntries.length === 0) return;
+  
+  const [day, month, year] = parseDate(allMonthEntries[0].date);
+  
+  elements.calendarMonthName.textContent = `${hebrewMonths[month-1]} ${year}`;
+  
+  const firstDayOfMonth = createDateObject(1, month, year);
+  const startingDayOfWeek = firstDayOfMonth.getDay();
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  
+  // Create a map of entries by day for easier access
+  const entriesByDay = {};
+  allMonthEntries.forEach(entry => {
+    const [entryDay] = parseDate(entry.date);
+    entriesByDay[entryDay] = entry;
+  });
+  
+  // Add empty cells for days before the 1st of the month
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'calendar-day empty';
+    elements.calendarGrid.appendChild(emptyCell);
   }
+  
+  // Create cells for each day of the month
+  for (let dayOfMonth = 1; dayOfMonth <= lastDayOfMonth; dayOfMonth++) {
+    const dayCell = document.createElement('div');
+    const dayDate = createDateObject(dayOfMonth, month, year);
+    const dayOfWeek = dayDate.getDay();
+    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+    const isFutureDay = dayDate > currentDate;
+    const isPastDay = dayDate < currentDate;
+    const isCurrentDay = dayDate.toDateString() === currentDate.toDateString();
+    
+    // Build class list based on day properties
+    let dayClasses = 'calendar-day';
+    if (isWeekend) dayClasses += ' weekend';
+    if (isFutureDay) dayClasses += ' future-day';
+    if (isPastDay) dayClasses += ' past-day';
+    if (isCurrentDay) dayClasses += ' current-day';
+    
+    dayCell.className = dayClasses;
+    
+    const entry = entriesByDay[dayOfMonth];
+    
+    // Determine day type based on various factors
+    const dayType = workingDayTypes[`${dayOfMonth}/${month}/${year}`] || 
+                   (isWeekend || (entry && entry.isHoliday) ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
+    
+    // Add vacation styling if needed
+    if (dayType === DAY_TYPES.VACATION) {
+      dayCell.classList.add('vacation-day');
+      dayCell.appendChild(createVacationBadge());
+    }
+    
+    // Add day number
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = dayOfMonth;
+    dayCell.appendChild(dayNumber);
+    
+    // Add hours if present
+    if (entry && entry.time && isValidTimeFormat(entry.time)) {
+      const dayHours = document.createElement('div');
+      dayHours.className = 'day-hours';
+      dayHours.textContent = entry.time;
+      dayCell.appendChild(dayHours);
+    }
+    
+    // Add holiday name if present
+    if (entry && entry.holidayName) {
+      const holidayNameEl = document.createElement('div');
+      holidayNameEl.className = 'holiday-name';
+      holidayNameEl.textContent = entry.holidayName;
+      dayCell.appendChild(holidayNameEl);
+    }
+    
+    // Add day type selector
+    const dayTypeContainer = document.createElement('div');
+    dayTypeContainer.className = 'day-type';
+    
+    const dayTypeSelect = document.createElement('select');
+    dayTypeSelect.className = 'day-type-select-calendar';
+    dayTypeSelect.dataset.date = `${dayOfMonth}/${month}/${year}`;
+    
+    // Regular day option
+    const regularOption = document.createElement('option');
+    regularOption.value = DAY_TYPES.REGULAR;
+    regularOption.textContent = DAY_TYPES.REGULAR;
+    regularOption.selected = dayType === DAY_TYPES.REGULAR && !(entry && entry.isHoliday);
+    
+    // Vacation day option
+    const vacationOption = document.createElement('option');
+    vacationOption.value = DAY_TYPES.VACATION;
+    vacationOption.textContent = DAY_TYPES.VACATION;
+    vacationOption.selected = dayType === DAY_TYPES.VACATION || (entry && entry.isHoliday);
+    
+    dayTypeSelect.appendChild(regularOption);
+    dayTypeSelect.appendChild(vacationOption);
+    dayTypeContainer.appendChild(dayTypeSelect);
+    dayCell.appendChild(dayTypeContainer);
+    
+    elements.calendarGrid.appendChild(dayCell);
+  }
+  
+  // Add event listeners to day type selectors
+  document.querySelectorAll('.day-type-select-calendar').forEach(select => {
+    select.addEventListener('change', function() {
+      const date = this.dataset.date;
+      const type = this.value;
+      
+      // Handle UI update for the calendar day
+      const dayCell = this.closest('.calendar-day');
+      if (type === DAY_TYPES.VACATION) {
+        dayCell.classList.add('vacation-day');
+        if (!dayCell.querySelector('.vacation-badge')) {
+          dayCell.insertBefore(createVacationBadge(), dayCell.firstChild);
+        }
+      } else {
+        dayCell.classList.remove('vacation-day');
+        const badge = dayCell.querySelector('.vacation-badge');
+        if (badge) {
+          dayCell.removeChild(badge);
+        }
+      }
+      
+      // Update the global state and other views
+      handleDayTypeChange(date, type);
+    });
+  });
+}
   
   // Helper function to calculate daily average
   function calculateDailyAverage(totalMinutes, days) {
@@ -505,145 +507,144 @@ const elements = {
     return result;
   }
   
-  // Function to display work hours in the table and calendar views
-  function displayWorkHours(result) {
-    // Clear previous results
-    elements.hoursTableBody.innerHTML = '';
+// Function to display work hours in the table and calendar views
+// Function to display work hours in the table and calendar views
+function displayWorkHours(result) {
+  // Clear previous results
+  elements.hoursTableBody.innerHTML = '';
+  
+  // Store all entries for later recalculation
+  allMonthEntries = result.entries;
+  
+  // Initialize day types for all entries
+  result.entries.forEach(entry => {
+    if (!workingDayTypes[entry.date]) {
+      // Default to יום חופשה for weekends, holidays, יום רגיל for other days
+      if (isWeekend(entry.day) || entry.isHoliday) {
+        workingDayTypes[entry.date] = DAY_TYPES.VACATION;
+      } else {
+        workingDayTypes[entry.date] = DAY_TYPES.REGULAR;
+      }
+    }
+  });
+  
+  // Current date for comparison
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  
+  // Generate table rows for each entry
+  result.entries.forEach(entry => {
+    const row = document.createElement('tr');
     
-    // Store all entries for later recalculation
-    allMonthEntries = result.entries;
+    const weekendClass = isWeekend(entry.day) ? 'weekend-day' : '';
     
-    // Initialize day types for all entries
-    result.entries.forEach(entry => {
-      if (!workingDayTypes[entry.date]) {
-        // Default to יום חופשה for weekends, holidays, יום רגיל for other days
-        if (isWeekend(entry.day) || entry.isHoliday) {
-          workingDayTypes[entry.date] = DAY_TYPES.VACATION;
+    // Parse date components
+    const [day, month, year] = parseDate(entry.date);
+    const entryDate = createDateObject(day, month, year);
+    const isFutureDay = entryDate > currentDate;
+    const isPastDay = entryDate < currentDate;
+    
+    // Process time data
+    let hours = 0;
+    let minutes = 0;
+    let timeDisplay = entry.time;
+    let hebrewHoursMinutes = '---';
+    
+    if (isValidTimeFormat(entry.time)) {
+      [hours, minutes] = entry.time.split(':').map(Number);
+      hebrewHoursMinutes = formatHoursMinutes(hours, minutes);
+    }
+    
+    // Format date for display
+    const hebrewDate = `${day}/${month}/${year}`;
+    
+    // Translate day name to Hebrew
+    const hebrewDay = hebrewDayNames[entry.day] || entry.day;
+    
+    // Create the day type dropdown
+    const dayTypeDropdown = `
+      <select class="day-type-select" data-date="${entry.date}">
+        <option value="${DAY_TYPES.REGULAR}" ${workingDayTypes[entry.date] === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
+        <option value="${DAY_TYPES.VACATION}" ${workingDayTypes[entry.date] === DAY_TYPES.VACATION ? 'selected' : ''}>${DAY_TYPES.VACATION}</option>
+      </select>
+    `;
+    
+    // Set row classes
+    let rowClasses = [];
+    if (isFutureDay) rowClasses.push('future-day');
+    if (isPastDay) rowClasses.push('past-day-row');
+    if (entryDate.toDateString() === currentDate.toDateString()) rowClasses.push('current-day-row');
+    if (workingDayTypes[entry.date] === DAY_TYPES.VACATION || entry.isHoliday || entry.holidayName) rowClasses.push('vacation-day-row');
+    
+    row.className = rowClasses.join(' ');
+    row.innerHTML = `
+      <td>${hebrewDate}</td>
+      <td class="${weekendClass}">${hebrewDay}</td>
+      <td>${hebrewHoursMinutes}</td>
+      <td>${entry.holidayName ? entry.holidayName : '---'}</td>
+      <td>${dayTypeDropdown}</td>
+    `;
+    
+    elements.hoursTableBody.appendChild(row);
+  });
+  
+  // Add event listeners to day type dropdowns
+  document.querySelectorAll('.day-type-select').forEach(select => {
+    select.addEventListener('change', function() {
+      const date = this.dataset.date;
+      const type = this.value;
+      
+      // Update the row styling directly for immediate feedback
+      const row = this.closest('tr');
+      if (row) {
+        if (type === DAY_TYPES.VACATION) {
+          row.classList.add('vacation-day-row');
         } else {
-          workingDayTypes[entry.date] = DAY_TYPES.REGULAR;
+          row.classList.remove('vacation-day-row');
         }
       }
+      
+      // Update global state and other views
+      handleDayTypeChange(date, type);
     });
-    
-    // Current date for comparison
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    
-    // Generate table rows for each entry
-    result.entries.forEach(entry => {
-      const row = document.createElement('tr');
-      
-      const weekendClass = isWeekend(entry.day) ? 'weekend-day' : '';
-      
-      // Parse date components
-      const [day, month, year] = parseDate(entry.date);
-      const entryDate = createDateObject(day, month, year);
-      const isFutureDay = entryDate > currentDate;
-      
-      // Process time data
-      let hours = 0;
-      let minutes = 0;
-      let timeDisplay = entry.time;
-      let hebrewHoursMinutes = '---';
-      
-      if (isValidTimeFormat(entry.time)) {
-        [hours, minutes] = entry.time.split(':').map(Number);
-        hebrewHoursMinutes = formatHoursMinutes(hours, minutes);
-      }
-      
-      // Format date for display
-      const hebrewDate = `${day}/${month}/${year}`;
-      
-      // Translate day name to Hebrew
-      const hebrewDay = hebrewDayNames[entry.day] || entry.day;
-      
-      // Create the day type dropdown
-      const dayTypeDropdown = `
-        <select class="day-type-select" data-date="${entry.date}">
-          <option value="${DAY_TYPES.REGULAR}" ${workingDayTypes[entry.date] === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
-          <option value="${DAY_TYPES.VACATION}" ${workingDayTypes[entry.date] === DAY_TYPES.VACATION ? 'selected' : ''}>${DAY_TYPES.VACATION}</option>
-        </select>
-      `;
-      
-      // Set row classes
-      let rowClasses = [];
-      if (isFutureDay) rowClasses.push('future-day');
-      if (entryDate.toDateString() === currentDate.toDateString()) rowClasses.push('current-day-row');
-      if (workingDayTypes[entry.date] === DAY_TYPES.VACATION || entry.isHoliday || entry.holidayName) rowClasses.push('vacation-day-row');
-      
-      row.className = rowClasses.join(' ');
-      row.innerHTML = `
-        <td>${hebrewDate}</td>
-        <td class="${weekendClass}">${hebrewDay}</td>
-        <td>${timeDisplay}</td>
-        <td>${hebrewHoursMinutes}</td>
-        <td>${entry.holidayName ? entry.holidayName : '---'}</td>
-        <td>${dayTypeDropdown}</td>
-      `;
-      
-      elements.hoursTableBody.appendChild(row);
-    });
-    
-    // Add event listeners to day type dropdowns
-    document.querySelectorAll('.day-type-select').forEach(select => {
-      select.addEventListener('change', function() {
-        const date = this.dataset.date;
-        const type = this.value;
-        
-        // Update the row styling directly for immediate feedback
-        const row = this.closest('tr');
-        if (row) {
-          if (type === DAY_TYPES.VACATION) {
-            row.classList.add('vacation-day-row');
-          } else {
-            row.classList.remove('vacation-day-row');
-          }
-        }
-        
-        // Update global state and other views
-        handleDayTypeChange(date, type);
-      });
-    });
-    
-    // Update totals
-    elements.totalDuration.textContent = result.duration;
-    
-    // Format total hours and minutes in Hebrew
-    const hebrewFormatted = formatHoursMinutes(result.totalHours, result.remainingMinutes);
-    elements.totalFormatted.textContent = hebrewFormatted;
-    
-    // Count completed work days
-    const completedDays = result.entries.filter(entry => 
-      !entry.isFutureDay && 
-      entry.time && 
-      entry.time !== '---' && 
-      isValidTimeFormat(entry.time)
-    ).length;
-    
-    // Update summary cards
-    elements.totalDaysElement.textContent = completedDays;
-    elements.totalHoursElement.textContent = hebrewFormatted;
-    elements.dailyAverageElement.textContent = calculateDailyAverage(result.totalMinutes, completedDays);
-    
-    // Update monthly requirement information
-    if (result.monthlyRequirement) {
-      elements.monthlyRequirementElement.textContent = result.monthlyRequirement.totalRequiredFormatted;
-      elements.remainingHoursElement.textContent = result.monthlyRequirement.remainingFormatted;
-    }
-    
-    // Calculate required hours with our custom rules
-    recalculateRequiredHours();
-    
-    // Show current view
-    if (currentView === 'calendar') {
-      generateCalendarView();
-    }
+  });
+  
+  // Format total hours and minutes in Hebrew
+  const hebrewFormatted = formatHoursMinutes(result.totalHours, result.remainingMinutes);
+  elements.totalFormatted.textContent = hebrewFormatted;
+  
+  // Count completed work days
+  const completedDays = result.entries.filter(entry => 
+    !entry.isFutureDay && 
+    entry.time && 
+    entry.time !== '---' && 
+    isValidTimeFormat(entry.time)
+  ).length;
+  
+  // Update summary cards
+  elements.totalDaysElement.textContent = completedDays;
+  elements.totalHoursElement.textContent = hebrewFormatted;
+  elements.dailyAverageElement.textContent = calculateDailyAverage(result.totalMinutes, completedDays);
+  
+  // Update monthly requirement information
+  if (result.monthlyRequirement) {
+    elements.monthlyRequirementElement.textContent = result.monthlyRequirement.totalRequiredFormatted;
+    elements.remainingHoursElement.textContent = result.monthlyRequirement.remainingFormatted;
   }
+  
+  // Calculate required hours with our custom rules
+  recalculateRequiredHours();
+  
+  // Show current view
+  if (currentView === 'calendar') {
+    generateCalendarView();
+  }
+}
   
   // Function to export table to CSV
   function exportToCsv() {
-    // Create CSV content with Hebrew headers
-    let csvContent = "תאריך,יום,משך,שעות,חג,סוג\n";
+    // Create CSV content with Hebrew headers - removed משך
+    let csvContent = "תאריך,יום,שעות,חג,סוג\n";
     
     // Add table rows
     Array.from(elements.hoursTableBody.querySelectorAll('tr')).forEach(row => {
@@ -651,21 +652,20 @@ const elements = {
       const dayTypeSelect = row.querySelector('.day-type-select');
       const dayType = dayTypeSelect ? dayTypeSelect.value : DAY_TYPES.REGULAR;
       
-      // Create an array of cell values
+      // Create an array of cell values - adjusted indices
       const rowData = [
         `"${cells[0].textContent}"`, // Date
         `"${cells[1].textContent}"`, // Day
-        `"${cells[2].textContent}"`, // Duration
-        `"${cells[3].textContent}"`, // Hours
-        `"${cells[4].textContent}"`, // Holiday
+        `"${cells[2].textContent}"`, // Hours (was index 3)
+        `"${cells[3].textContent}"`, // Holiday (was index 4)
         `"${dayType}"`               // Type
       ];
       
       csvContent += rowData.join(',') + "\n";
     });
     
-    // Add total row
-    csvContent += `"סה״כ",,"${elements.totalDuration.textContent}","${elements.totalFormatted.textContent}",""\n`;
+    // Add total row - removed totalDuration reference
+    csvContent += `"סה״כ",,"${elements.totalFormatted.textContent}",""\n`;
     
     // Create and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

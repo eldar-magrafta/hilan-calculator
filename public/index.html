@@ -156,7 +156,6 @@
                             <tr>
                                 <th>תאריך</th>
                                 <th>יום</th>
-                                <th>משך</th>
                                 <th>שעות</th>
                                 <th>חג</th>
                                 <th>סוג</th>
@@ -166,10 +165,8 @@
                             <!-- Table rows will be inserted here dynamically -->
                         </tbody>
                         <tfoot>
-                            <tr id="total-row">
-                                <td colspan="4"><strong>סה"כ</strong></td>
-                                <td id="total-duration">00:00</td>
-                                <td id="total-formatted">0 שעות 0 דקות</td>
+                            <tr id="total-row" class="total-row">
+                                <td colspan="5" class="total-cell"><strong>סה״כ:</strong> <span id="total-formatted">0 שעות 0 דקות</span></td>
                             </tr>
                         </tfoot>
                     </table>
