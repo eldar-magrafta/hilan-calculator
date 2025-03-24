@@ -46,7 +46,7 @@ const elements = {
   
   // Constants
   const DAY_TYPES = {
-    REGULAR: 'יום רגיל',
+    REGULAR: 'יום עבודה',
     VACATION: 'יום חופשה'
   };
   
