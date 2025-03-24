@@ -1,6 +1,4 @@
-/* Base Styles with consolidated variables */
 :root {
-  /* Colors */
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --secondary-color: #64748b;
@@ -16,23 +14,16 @@
   --warning-color: #f59e0b;
   --error-color: #ef4444;
   --green-color: #4ade80;
-  
-  /* Opacity values */
   --opacity-low: 0.05;
   --opacity-medium: 0.1;
   --opacity-high: 0.2;
-  
-  /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  
-  /* Sizes */
   --radius: 0.5rem;
   --icon-size: 1rem;
 }
 
-/* Reset and base styles */
 * {
   margin: 0;
   padding: 0;
@@ -53,7 +44,6 @@ body {
   margin: 0 auto;
 }
 
-/* Typography */
 h1, h2, h3 {
   color: var(--dark-bg);
   margin-bottom: 1rem;
@@ -68,7 +58,12 @@ h2 { font-size: 1.5rem; }
   margin-bottom: 2rem; 
 }
 
-/* Layout components */
+.note {
+  color: var(--light-text);
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
 header {
   margin-bottom: 2rem;
   text-align: center;
@@ -84,13 +79,6 @@ footer {
   border-top: 1px solid var(--border-color);
 }
 
-.note {
-  color: var(--light-text);
-  font-size: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-/* Cards */
 .card {
   background-color: var(--card-bg);
   border-radius: var(--radius);
@@ -124,7 +112,6 @@ footer {
   margin-bottom: 0;
 }
 
-/* Forms */
 .form-group { margin-bottom: 1.5rem; }
 
 label {
@@ -151,7 +138,6 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
-/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -170,7 +156,6 @@ input:focus {
   margin-right: 0;
 }
 
-/* Button variants */
 .primary-btn {
   background-color: var(--primary-color);
   color: white;
@@ -208,7 +193,7 @@ input:focus {
 
 .view-toggle-container {
   display: flex;
-  justify-content: flex-start; /* Right alignment in RTL */
+  justify-content: flex-start;
   margin: 1rem 0;
   padding: 0 1.5rem;
 }
@@ -219,7 +204,6 @@ input:focus {
   width: auto;
 }
 
-/* Loader */
 .loader {
   display: flex;
   flex-direction: column;
@@ -244,7 +228,6 @@ input:focus {
 
 .loader p { color: var(--secondary-color); }
 
-/* Summary Cards */
 .summary-area {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -292,7 +275,6 @@ input:focus {
   color: var(--dark-bg);
 }
 
-/* Card status indicators */
 .completed-hours,
 .complete-completion {
   background-color: rgba(16, 185, 129, var(--opacity-medium));
@@ -303,7 +285,12 @@ input:focus {
   font-weight: bold;
 }
 
-/* Table */
+.monthly-requirement {
+  margin-top: 1rem;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 1rem;
+}
+
 .table-container {
   overflow-x: auto;
   margin-top: 1.5rem;
@@ -318,6 +305,7 @@ th, td {
   padding: 1rem;
   text-align: right;
   border-bottom: 1px solid var(--border-color);
+  box-sizing: border-box;
 }
 
 th {
@@ -331,9 +319,28 @@ tbody tr:hover { background-color: var(--light-bg); }
 tfoot tr { 
   background-color: var(--light-bg); 
   font-weight: 600; 
+  width: 100%;
 }
 
-/* Calendar */
+.total-row {
+  background-color: var(--accent-color) !important;
+  color: white !important;
+}
+
+.total-cell {
+  text-align: center !important;
+  font-weight: bold !important;
+  color: white !important;
+  padding: 1rem !important;
+  background-color: var(--accent-color) !important;
+}
+
+.table-container table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
 .calendar-container { padding: 1rem 0; }
 
 .calendar-header {
@@ -377,11 +384,10 @@ tfoot tr {
   overflow: hidden;
 }
 
-/* Calendar day styling */
 .calendar-day {
   min-height: 100px;
   padding: 0.5rem;
-  padding-top: 35px; /* Space for day number */
+  padding-top: 35px;
   border-right: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -393,43 +399,8 @@ tfoot tr {
 .calendar-day:hover { background-color: var(--light-bg); }
 .calendar-day:nth-child(7n) { border-right: none; }
 .calendar-day.empty { background-color: #f3f4f6; }
+.calendar-day.weekend { background-color: rgba(59, 130, 246, var(--opacity-low)); }
 
-/* Day states - consolidated */
-.calendar-day.weekend { 
-  background-color: rgba(59, 130, 246, var(--opacity-low)); 
-}
-
-.vacation-day,
-.vacation-day-row {
-  background-color: rgba(245, 158, 11, var(--opacity-medium));
-}
-
-.vacation-day:hover,
-.vacation-day-row:hover {
-  background-color: rgba(245, 158, 11, var(--opacity-high));
-}
-
-/* Current day styling - green styling */
-.calendar-day.current-day {
-  background-color: rgba(74, 222, 128, var(--opacity-medium));
-  border: 2px solid var(--green-color);
-}
-
-.current-day-row {
-  border: 2px solid var(--green-color);
-  background-color: rgba(74, 222, 128, var(--opacity-low));
-}
-
-/* Future/Past day styling */
-.future-day {
-  background-color: #f9f9f9;
-}
-
-.past-day {
-  background-color: #f9f9f9;
-}
-
-/* Day number circle styling - consolidated */
 .day-number {
   display: inline-flex;
   justify-content: center;
@@ -444,7 +415,6 @@ tfoot tr {
   right: 0.5rem;
 }
 
-/* Day number colors for different states */
 .current-day .day-number {
   background-color: var(--green-color);
   color: white;
@@ -463,7 +433,16 @@ tfoot tr {
   color: white;
 }
 
-/* Day content elements */
+.calendar-day.past-day .day-number {
+  background-color: var(--light-text);
+  color: white;
+}
+
+.calendar-day.past-day.vacation-day .day-number {
+  background-color: var(--light-text);
+  color: white;
+}
+
 .day-hours {
   margin-top: auto;
   font-size: 1.1rem;
@@ -497,7 +476,34 @@ tfoot tr {
   margin-top: 0.25rem;
 }
 
-/* Special case combinations */
+.vacation-day,
+.vacation-day-row {
+  background-color: rgba(245, 158, 11, var(--opacity-medium));
+}
+
+.vacation-day:hover,
+.vacation-day-row:hover {
+  background-color: rgba(245, 158, 11, var(--opacity-high));
+}
+
+.calendar-day.current-day {
+  background-color: rgba(74, 222, 128, var(--opacity-medium));
+  border: 2px solid var(--green-color);
+}
+
+.current-day-row {
+  border: 2px solid var(--green-color);
+  background-color: rgba(74, 222, 128, var(--opacity-low));
+}
+
+.future-day {
+  background-color: #f9f9f9;
+}
+
+.past-day {
+  background-color: #f9f9f9;
+}
+
 .calendar-day.weekend.vacation-day {
   background-color: rgba(245, 158, 11, var(--opacity-medium)) !important;
 }
@@ -510,12 +516,10 @@ tfoot tr {
   border-right: 4px solid var(--warning-color);
 }
 
-/* Table text coloring for future days - removing bold and only keeping color */
 .future-day td:first-child {
   color: var(--accent-color);
 }
 
-/* Form elements */
 .day-type-select, 
 .day-type-select-calendar {
   width: 100%;
@@ -526,16 +530,8 @@ tfoot tr {
   background-color: white;
 }
 
-/* Utility classes */
 .hidden { display: none; }
 
-.monthly-requirement {
-  margin-top: 1rem;
-  border-top: 1px dashed var(--border-color);
-  padding-top: 1rem;
-}
-
-/* Media queries - consolidated */
 @media (max-width: 768px) {
   .calendar-day {
     min-height: 80px;
@@ -574,7 +570,6 @@ tfoot tr {
   }
 }
 
-/* Print styles */
 @media print {
   body {
     background-color: white;
@@ -595,35 +590,4 @@ tfoot tr {
   
   .hidden { display: block !important; }
   #calendar-view.hidden { display: none !important; }
-}
-
-/* Total row styling in table */
-.total-row {
-  background-color: var(--accent-color) !important; /* Blue background */
-  color: white !important;
-}
-
-.total-cell {
-  text-align: center !important;
-  font-weight: bold !important;
-  color: white !important;
-  padding: 1rem !important;
-  background-color: var(--accent-color) !important;
-}
-
-/* Ensure consistent table layout */
-.table-container table {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-}
-
-/* Make the footer row take full width */
-tfoot tr {
-  width: 100%;
-}
-
-/* Ensure no cell padding/margin differences */
-th, td, .total-cell {
-  box-sizing: border-box;
 }
