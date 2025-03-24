@@ -29,7 +29,7 @@
   
   /* Sizes */
   --radius: 0.5rem;
-  --icon-size: 1.25rem;
+  --icon-size: 1rem;
 }
 
 /* Reset and base styles */
@@ -267,8 +267,8 @@ input:focus {
   justify-content: center;
   width: 3rem;
   height: 3rem;
-  background-color: var(--accent-color);
-  color: white;
+  background-color: transparent;
+  color: var(--accent-color);
   border-radius: 50%;
   margin-left: 1rem;
 }

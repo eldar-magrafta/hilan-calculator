@@ -16,6 +16,7 @@ const elements = {
     totalFormatted: document.getElementById('total-formatted'),
     
     // Summary elements
+    regularWorkdaysElement: document.getElementById('regular-workdays'),
     totalDaysElement: document.getElementById('total-days'),
     totalHoursElement: document.getElementById('total-hours'),
     dailyAverageElement: document.getElementById('daily-average'),
@@ -238,37 +239,36 @@ const elements = {
     if (!allMonthEntries || allMonthEntries.length === 0) return;
     
     let totalRequiredMinutes = 0;
-    const minutesPerWorkday = 9 * 60; // 9 hours in minutes
+    const minutesPerWorkday = 9 * 60;
+    let regularWorkdaysCount = 0;
     
-    // Calculate based on day types
     allMonthEntries.forEach(entry => {
-      // Get day type for this date
       const dayType = workingDayTypes[entry.date] || DAY_TYPES.REGULAR;
       
-      // Only add required hours for regular workdays
       if (dayType === DAY_TYPES.REGULAR) {
         const [day, month, year] = parseDate(entry.date);
         const entryDate = createDateObject(day, month, year);
         const dayOfWeek = entryDate.getDay();
         
-        if (dayOfWeek === 4) { // Thursday
+        regularWorkdaysCount++;
+        
+        if (dayOfWeek === 4) {
           totalRequiredMinutes += 8.5 * 60;
         } else {
-          // Add regular 9 hours for other days
           totalRequiredMinutes += minutesPerWorkday;
         }
       }
     });
     
+    elements.regularWorkdaysElement.textContent = regularWorkdaysCount;
+    
     const totalRequiredHours = Math.floor(totalRequiredMinutes / 60);
     const totalRequiredRemainingMinutes = totalRequiredMinutes % 60;
     
-    // Get current completed hours
     const totalHoursText = elements.totalHoursElement.textContent;
     let completedHours = 0;
     let completedMinutes = 0;
     
-    // Parse completed hours from the display
     const completedMatch = totalHoursText.match(/(\d+) שעות(?: ו-?(\d+) דקות)?/);
     if (completedMatch) {
       completedHours = parseInt(completedMatch[1], 10) || 0;
@@ -281,28 +281,22 @@ const elements = {
     const remainingHours = Math.floor(remainingRequiredMinutes / 60);
     const remainingMinutes = remainingRequiredMinutes % 60;
     
-    // Calculate completion percentage
-    const safeRequiredMinutes = Math.max(1, totalRequiredMinutes); // Avoid division by zero
+    const safeRequiredMinutes = Math.max(1, totalRequiredMinutes);
     const completionPercentage = (totalCompletedMinutes / safeRequiredMinutes) * 100;
     const formattedPercentage = completionPercentage.toFixed(1);
     
-    // Update the display
     elements.monthlyRequirementElement.textContent = `${totalRequiredHours} שעות ${totalRequiredRemainingMinutes > 0 ? `${totalRequiredRemainingMinutes} דקות` : ''}`;
     elements.remainingHoursElement.textContent = `${remainingHours} שעות ${remainingMinutes > 0 ? `${remainingMinutes} דקות` : ''}`;
     
-    // Update completion percentage display
     if (elements.completionPercentageElement) {
       elements.completionPercentageElement.textContent = `${formattedPercentage}%`;
       
-      // Add classes based on completion percentage
       if (elements.completionCard) {
-        // Remove all status classes
         updateElementClass(
           elements.completionCard, 
           [STATUS_CLASSES.LOW, STATUS_CLASSES.MID, STATUS_CLASSES.HIGH, STATUS_CLASSES.COMPLETE]
         );
         
-        // Add appropriate class based on percentage
         if (completionPercentage < 50) {
           elements.completionCard.classList.add(STATUS_CLASSES.LOW);
         } else if (completionPercentage < 80) {
@@ -315,15 +309,12 @@ const elements = {
       }
     }
     
-    // Update card styling based on remaining hours
     if (elements.remainingHoursCard) {
-      // Reset classes
       updateElementClass(
         elements.remainingHoursCard, 
         [STATUS_CLASSES.COMPLETED, STATUS_CLASSES.NEARLY_COMPLETED, STATUS_CLASSES.PENDING]
       );
       
-      // Add appropriate class based on hours remaining
       const hoursRemaining = remainingRequiredMinutes / 60;
       if (hoursRemaining < 5) {
         elements.remainingHoursCard.classList.add(STATUS_CLASSES.COMPLETED);
@@ -510,16 +501,12 @@ function generateCalendarView() {
 // Function to display work hours in the table and calendar views
 // Function to display work hours in the table and calendar views
 function displayWorkHours(result) {
-  // Clear previous results
   elements.hoursTableBody.innerHTML = '';
   
-  // Store all entries for later recalculation
   allMonthEntries = result.entries;
   
-  // Initialize day types for all entries
   result.entries.forEach(entry => {
     if (!workingDayTypes[entry.date]) {
-      // Default to יום חופשה for weekends, holidays, יום רגיל for other days
       if (isWeekend(entry.day) || entry.isHoliday) {
         workingDayTypes[entry.date] = DAY_TYPES.VACATION;
       } else {
@@ -528,23 +515,29 @@ function displayWorkHours(result) {
     }
   });
   
-  // Current date for comparison
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
   
-  // Generate table rows for each entry
+  let regularWorkdaysCount = 0;
+  result.entries.forEach(entry => {
+    if (!isWeekend(entry.day) && !entry.isHoliday && 
+        workingDayTypes[entry.date] === DAY_TYPES.REGULAR) {
+      regularWorkdaysCount++;
+    }
+  });
+  
+  elements.regularWorkdaysElement.textContent = regularWorkdaysCount;
+  
   result.entries.forEach(entry => {
     const row = document.createElement('tr');
     
     const weekendClass = isWeekend(entry.day) ? 'weekend-day' : '';
     
-    // Parse date components
     const [day, month, year] = parseDate(entry.date);
     const entryDate = createDateObject(day, month, year);
     const isFutureDay = entryDate > currentDate;
     const isPastDay = entryDate < currentDate;
     
-    // Process time data
     let hours = 0;
     let minutes = 0;
     let timeDisplay = entry.time;
@@ -555,13 +548,10 @@ function displayWorkHours(result) {
       hebrewHoursMinutes = formatHoursMinutes(hours, minutes);
     }
     
-    // Format date for display
     const hebrewDate = `${day}/${month}/${year}`;
     
-    // Translate day name to Hebrew
     const hebrewDay = hebrewDayNames[entry.day] || entry.day;
     
-    // Create the day type dropdown
     const dayTypeDropdown = `
       <select class="day-type-select" data-date="${entry.date}">
         <option value="${DAY_TYPES.REGULAR}" ${workingDayTypes[entry.date] === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
@@ -569,7 +559,6 @@ function displayWorkHours(result) {
       </select>
     `;
     
-    // Set row classes
     let rowClasses = [];
     if (isFutureDay) rowClasses.push('future-day');
     if (isPastDay) rowClasses.push('past-day-row');
@@ -588,13 +577,11 @@ function displayWorkHours(result) {
     elements.hoursTableBody.appendChild(row);
   });
   
-  // Add event listeners to day type dropdowns
   document.querySelectorAll('.day-type-select').forEach(select => {
     select.addEventListener('change', function() {
       const date = this.dataset.date;
       const type = this.value;
       
-      // Update the row styling directly for immediate feedback
       const row = this.closest('tr');
       if (row) {
         if (type === DAY_TYPES.VACATION) {
@@ -604,16 +591,13 @@ function displayWorkHours(result) {
         }
       }
       
-      // Update global state and other views
       handleDayTypeChange(date, type);
     });
   });
   
-  // Format total hours and minutes in Hebrew
   const hebrewFormatted = formatHoursMinutes(result.totalHours, result.remainingMinutes);
   elements.totalFormatted.textContent = hebrewFormatted;
   
-  // Count completed work days
   const completedDays = result.entries.filter(entry => 
     !entry.isFutureDay && 
     entry.time && 
@@ -621,21 +605,17 @@ function displayWorkHours(result) {
     isValidTimeFormat(entry.time)
   ).length;
   
-  // Update summary cards
   elements.totalDaysElement.textContent = completedDays;
   elements.totalHoursElement.textContent = hebrewFormatted;
   elements.dailyAverageElement.textContent = calculateDailyAverage(result.totalMinutes, completedDays);
   
-  // Update monthly requirement information
   if (result.monthlyRequirement) {
     elements.monthlyRequirementElement.textContent = result.monthlyRequirement.totalRequiredFormatted;
     elements.remainingHoursElement.textContent = result.monthlyRequirement.remainingFormatted;
   }
   
-  // Calculate required hours with our custom rules
   recalculateRequiredHours();
   
-  // Show current view
   if (currentView === 'calendar') {
     generateCalendarView();
   }
