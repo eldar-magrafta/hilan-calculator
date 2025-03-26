@@ -593,3 +593,7 @@ tfoot tr {
   .hidden { display: block !important; }
   #calendar-view.hidden { display: none !important; }
 }
+
+.calendar-day.vacation-day {
+  background-color: rgba(245, 158, 11, var(--opacity-medium)) !important;
+}
