@@ -20,6 +20,7 @@ const elements = {
     totalDaysElement: document.getElementById('total-days'),
     totalHoursElement: document.getElementById('total-hours'),
     dailyAverageElement: document.getElementById('daily-average'),
+    dailyRequiredHoursElement: document.getElementById('daily-required-hours'),
     monthlyRequirementElement: document.getElementById('monthly-requirement'),
     remainingHoursElement: document.getElementById('remaining-hours'),
     completionPercentageElement: document.getElementById('completion-percentage'),
@@ -241,6 +242,9 @@ const elements = {
     let totalRequiredMinutes = 0;
     const minutesPerWorkday = 9 * 60;
     let regularWorkdaysCount = 0;
+    let remainingWorkdaysCount = 0;
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
     
     allMonthEntries.forEach(entry => {
       const dayType = workingDayTypes[entry.date] || DAY_TYPES.REGULAR;
@@ -251,6 +255,11 @@ const elements = {
         const dayOfWeek = entryDate.getDay();
         
         regularWorkdaysCount++;
+        
+        // Count remaining work days (today and future days)
+        if (entryDate >= currentDate) {
+          remainingWorkdaysCount++;
+        }
         
         if (dayOfWeek === 4) {
           totalRequiredMinutes += 8.5 * 60;
@@ -281,12 +290,26 @@ const elements = {
     const remainingHours = Math.floor(remainingRequiredMinutes / 60);
     const remainingMinutes = remainingRequiredMinutes % 60;
     
+    // Calculate daily required hours in hours and minutes
+    let dailyRequiredHours = 0;
+    let dailyRequiredMinutes = 0;
+    
+    if (remainingWorkdaysCount > 0) {
+      const totalDailyRequiredMinutes = Math.round(remainingRequiredMinutes / remainingWorkdaysCount);
+      dailyRequiredHours = Math.floor(totalDailyRequiredMinutes / 60);
+      dailyRequiredMinutes = totalDailyRequiredMinutes % 60;
+    }
+    
     const safeRequiredMinutes = Math.max(1, totalRequiredMinutes);
     const completionPercentage = (totalCompletedMinutes / safeRequiredMinutes) * 100;
     const formattedPercentage = completionPercentage.toFixed(1);
     
     elements.monthlyRequirementElement.textContent = `${totalRequiredHours} שעות ${totalRequiredRemainingMinutes > 0 ? `${totalRequiredRemainingMinutes} דקות` : ''}`;
     elements.remainingHoursElement.textContent = `${remainingHours} שעות ${remainingMinutes > 0 ? `${remainingMinutes} דקות` : ''}`;
+    
+    // Format daily required hours in X:Y format
+    const formattedDailyMinutes = dailyRequiredMinutes < 10 ? `0${dailyRequiredMinutes}` : dailyRequiredMinutes;
+    elements.dailyRequiredHoursElement.textContent = `${dailyRequiredHours}:${formattedDailyMinutes}`;
     
     if (elements.completionPercentageElement) {
       elements.completionPercentageElement.textContent = `${formattedPercentage}%`;
@@ -326,7 +349,6 @@ const elements = {
     }
   }
   
-// Function to generate the calendar view
 // Function to generate the calendar view
 function generateCalendarView() {
   elements.calendarGrid.innerHTML = '';
