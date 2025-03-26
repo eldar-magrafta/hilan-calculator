@@ -597,3 +597,13 @@ tfoot tr {
 .calendar-day.vacation-day {
   background-color: rgba(245, 158, 11, var(--opacity-medium)) !important;
 }
+
+.day-type-text {
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  background-color: rgba(245, 158, 11, var(--opacity-low));
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--dark-bg);
+  font-weight: 500;
+}

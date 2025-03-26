@@ -392,7 +392,10 @@ function generateCalendarView() {
     
     // Build class list based on day properties
     let dayClasses = 'calendar-day';
-    if (isWeekend) dayClasses += ' weekend';
+    if (isWeekend) {
+      dayClasses += ' weekend';
+      dayClasses += ' vacation-day'; // Keep the vacation-day class for the orange background
+    }
     if (isFutureDay) dayClasses += ' future-day';
     if (isPastDay) dayClasses += ' past-day';
     if (isCurrentDay) dayClasses += ' current-day';
@@ -403,10 +406,10 @@ function generateCalendarView() {
     
     // Determine day type based on various factors
     const dayType = workingDayTypes[`${dayOfMonth}/${month}/${year}`] || 
-                   (isWeekend || (entry && entry.isHoliday) ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
+                  (isWeekend || (entry && entry.isHoliday) ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
     
-    // Add vacation styling if needed
-    if (dayType === DAY_TYPES.VACATION) {
+    // Add vacation styling if needed (only add badge for non-weekend vacation days)
+    if (dayType === DAY_TYPES.VACATION && !isWeekend) {
       dayCell.classList.add('vacation-day');
       dayCell.appendChild(createVacationBadge());
     }
@@ -433,30 +436,38 @@ function generateCalendarView() {
       dayCell.appendChild(holidayNameEl);
     }
     
-    // Add day type selector
-    const dayTypeContainer = document.createElement('div');
-    dayTypeContainer.className = 'day-type';
+    // Add day type selector or display - but only for non-weekend days
+    if (!isWeekend) {
+      const dayTypeContainer = document.createElement('div');
+      dayTypeContainer.className = 'day-type';
+      
+      // Regular dropdown for non-weekend days
+      const dayTypeSelect = document.createElement('select');
+      dayTypeSelect.className = 'day-type-select-calendar';
+      dayTypeSelect.dataset.date = `${dayOfMonth}/${month}/${year}`;
+      
+      // Regular day option
+      const regularOption = document.createElement('option');
+      regularOption.value = DAY_TYPES.REGULAR;
+      regularOption.textContent = DAY_TYPES.REGULAR;
+      regularOption.selected = dayType === DAY_TYPES.REGULAR && !(entry && entry.isHoliday);
+      
+      // Vacation day option
+      const vacationOption = document.createElement('option');
+      vacationOption.value = DAY_TYPES.VACATION;
+      vacationOption.textContent = DAY_TYPES.VACATION;
+      vacationOption.selected = dayType === DAY_TYPES.VACATION || (entry && entry.isHoliday);
+      
+      dayTypeSelect.appendChild(regularOption);
+      dayTypeSelect.appendChild(vacationOption);
+      dayTypeContainer.appendChild(dayTypeSelect);
+      dayCell.appendChild(dayTypeContainer);
+    }
     
-    const dayTypeSelect = document.createElement('select');
-    dayTypeSelect.className = 'day-type-select-calendar';
-    dayTypeSelect.dataset.date = `${dayOfMonth}/${month}/${year}`;
-    
-    // Regular day option
-    const regularOption = document.createElement('option');
-    regularOption.value = DAY_TYPES.REGULAR;
-    regularOption.textContent = DAY_TYPES.REGULAR;
-    regularOption.selected = dayType === DAY_TYPES.REGULAR && !(entry && entry.isHoliday);
-    
-    // Vacation day option
-    const vacationOption = document.createElement('option');
-    vacationOption.value = DAY_TYPES.VACATION;
-    vacationOption.textContent = DAY_TYPES.VACATION;
-    vacationOption.selected = dayType === DAY_TYPES.VACATION || (entry && entry.isHoliday);
-    
-    dayTypeSelect.appendChild(regularOption);
-    dayTypeSelect.appendChild(vacationOption);
-    dayTypeContainer.appendChild(dayTypeSelect);
-    dayCell.appendChild(dayTypeContainer);
+    // Store the value in workingDayTypes for weekend days
+    if (isWeekend) {
+      workingDayTypes[`${dayOfMonth}/${month}/${year}`] = DAY_TYPES.VACATION;
+    }
     
     elements.calendarGrid.appendChild(dayCell);
   }
@@ -521,7 +532,6 @@ function generateCalendarView() {
   }
   
 // Function to display work hours in the table and calendar views
-// Function to display work hours in the table and calendar views
 function displayWorkHours(result) {
   elements.hoursTableBody.innerHTML = '';
   
@@ -554,6 +564,7 @@ function displayWorkHours(result) {
     const row = document.createElement('tr');
     
     const weekendClass = isWeekend(entry.day) ? 'weekend-day' : '';
+    const isEntryWeekend = isWeekend(entry.day);
     
     const [day, month, year] = parseDate(entry.date);
     const entryDate = createDateObject(day, month, year);
@@ -574,12 +585,21 @@ function displayWorkHours(result) {
     
     const hebrewDay = hebrewDayNames[entry.day] || entry.day;
     
-    const dayTypeDropdown = `
-      <select class="day-type-select" data-date="${entry.date}">
-        <option value="${DAY_TYPES.REGULAR}" ${workingDayTypes[entry.date] === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
-        <option value="${DAY_TYPES.VACATION}" ${workingDayTypes[entry.date] === DAY_TYPES.VACATION ? 'selected' : ''}>${DAY_TYPES.VACATION}</option>
-      </select>
-    `;
+    let dayTypeHTML = '';
+    if (isEntryWeekend) {
+      // For weekends, display nothing in the type column
+      dayTypeHTML = '';
+      // Ensure working day type is set to vacation for weekends
+      workingDayTypes[entry.date] = DAY_TYPES.VACATION;
+    } else {
+      // Regular dropdown for non-weekend days
+      dayTypeHTML = `
+        <select class="day-type-select" data-date="${entry.date}">
+          <option value="${DAY_TYPES.REGULAR}" ${workingDayTypes[entry.date] === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
+          <option value="${DAY_TYPES.VACATION}" ${workingDayTypes[entry.date] === DAY_TYPES.VACATION ? 'selected' : ''}>${DAY_TYPES.VACATION}</option>
+        </select>
+      `;
+    }
     
     let rowClasses = [];
     if (isFutureDay) rowClasses.push('future-day');
@@ -593,7 +613,7 @@ function displayWorkHours(result) {
       <td class="${weekendClass}">${hebrewDay}</td>
       <td>${hebrewHoursMinutes}</td>
       <td>${entry.holidayName ? entry.holidayName : '---'}</td>
-      <td>${dayTypeDropdown}</td>
+      <td>${dayTypeHTML}</td>
     `;
     
     elements.hoursTableBody.appendChild(row);
