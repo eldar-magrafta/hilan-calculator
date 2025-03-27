@@ -218,8 +218,9 @@ input:focus {
 }
 
 .icon-btn:hover {
-  background-color: rgba(var(--primary-color-rgb), 0.1);
+  background-color: transparent;
   transform: translateY(-2px);
+  color: var(--secondary-color);
 }
 
 .icon-btn i {
@@ -308,14 +309,14 @@ input:focus {
   justify-content: center;
   width: 3rem;
   height: 3rem;
-  background-color: rgba(var(--primary-color-rgb), 0.1);
+  background-color: transparent;
   color: var(--primary-color);
-  border-radius: 12px;
   margin-left: 1rem;
 }
 
 .summary-icon i { 
-  font-size: var(--icon-size); 
+  font-size: 1.75rem; 
+  color: var(--secondary-color);
 }
 
 .summary-details {
