@@ -13,6 +13,7 @@
   --border-color: #e2e8f0;       /* Border color */
   --success-color: #06d6a0;      /* Success state color */
   --warning-color: #ffd166;      /* Warning state color */
+  --holiday-color: #eb6811;
   --error-color: #ef476f;        /* Error state color */
   --green-color: #10b981;        /* Green elements */
   
@@ -576,7 +577,7 @@ tfoot tr {
 
 .holiday-name {
   font-size: 0.7rem;
-  color: var(--warning-color);
+  color: var(--holiday-color);
   text-align: center;
   margin-top: 0.25rem;
   font-weight: 600;
