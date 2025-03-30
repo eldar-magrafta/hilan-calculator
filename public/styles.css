@@ -205,6 +205,7 @@ input:focus {
   margin-right: 0;
 }
 
+/* Primary button */
 .primary-btn {
   background: linear-gradient(to right, var(--primary-color), var(--primary-hover));
   color: white;
@@ -218,6 +219,7 @@ input:focus {
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
 
+/* Secondary button */
 .secondary-btn {
   background-color: var(--secondary-color);
   color: white;
@@ -229,6 +231,7 @@ input:focus {
   transform: translateY(-2px);
 }
 
+/* Icon button */
 .icon-btn {
   background-color: transparent;
   padding: 0.5rem;
@@ -247,6 +250,7 @@ input:focus {
   color: var(--primary-color);
 }
 
+/* Action button */
 .action-btn {
   padding: 0.25rem 0.4rem;
   font-size: 0.7rem;
@@ -268,6 +272,7 @@ input:focus {
   font-size: 0.7rem;
 }
 
+/* Vacation button */
 .vacation-btn {
   background-color: var(--warning-color);
   color: var(--dark-bg);
@@ -278,6 +283,7 @@ input:focus {
   transform: translateY(-2px);
 }
 
+/* Workday button */
 .workday-btn {
   background-color: var(--secondary-color);
   color: white;
@@ -491,6 +497,7 @@ tfoot tr {
   box-shadow: var(--shadow-sm);
 }
 
+/* Calendar Weekdays */
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -522,7 +529,7 @@ tfoot tr {
   box-shadow: var(--shadow);
 }
 
-/* Calendar day styles */
+/* Calendar Day Base Styles */
 .calendar-day {
   min-height: 120px;
   padding: 0.5rem;
@@ -547,12 +554,9 @@ tfoot tr {
   border-right: none; 
 }
 
-/* Calendar day types */
+/* Calendar Day Types */
 .calendar-day.empty { 
   background-color: #f3f4f6; 
-  border-right: 1px solid var(--border-color);
-  border-left: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
 }
 
 .calendar-day.weekend { 
@@ -561,19 +565,10 @@ tfoot tr {
 
 .calendar-day.past-day {
   background-color: #f9f9f9;
-  border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
 }
 
 .calendar-day.future-day {
   background-color: #f9f9f9;
-  border-right: 1px solid var(--border-color);
-  border-left: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.calendar-day.future-day:nth-child(7n) {
-  border-right: none;
 }
 
 .calendar-day.current-day {
@@ -595,7 +590,7 @@ tfoot tr {
   background-color: rgba(245, 158, 11, var(--opacity-medium)) !important;
 }
 
-/* Calendar day elements */
+/* Calendar Day Number Styles */
 .day-number {
   display: inline-flex;
   justify-content: center;
@@ -642,6 +637,7 @@ tfoot tr {
   color: white;
 }
 
+/* Day Hours */
 .day-hours {
   margin-top: 0.5rem;
   margin-bottom: auto;
@@ -656,6 +652,7 @@ tfoot tr {
   background-color: rgba(var(--primary-color-rgb), 0.05);
 }
 
+/* Day Elements */
 .vacation-badge {
   position: absolute;
   top: 0.5rem;
@@ -687,7 +684,7 @@ tfoot tr {
   margin-top: 0.25rem;
 }
 
-/* Day actions */
+/* Day Actions */
 .day-actions {
   position: absolute;
   width: 100%;
@@ -711,23 +708,7 @@ tfoot tr {
   display: none;
 }
 
-.calendar-day.vacation-day .vacation-btn {
-  display: none;
-}
-
-.calendar-day.vacation-day .workday-btn {
-  max-width: 100%;
-}
-
-.calendar-day:not(.vacation-day) .workday-btn {
-  display: none;
-}
-
-.calendar-day:not(.vacation-day) .vacation-btn {
-  max-width: 100%;
-}
-
-/* Table row styles */
+/* Table Row Styles */
 .current-day-row {
   border: 2px solid var(--green-color);
   background-color: rgba(74, 222, 128, var(--opacity-low));
@@ -763,7 +744,24 @@ tfoot tr {
   font-weight: 500;
 }
 
-/* Form elements */
+/* Vacation day button states */
+.calendar-day.vacation-day .vacation-btn {
+  display: none;
+}
+
+.calendar-day.vacation-day .workday-btn {
+  max-width: 100%;
+}
+
+.calendar-day:not(.vacation-day) .workday-btn {
+  display: none;
+}
+
+.calendar-day:not(.vacation-day) .vacation-btn {
+  max-width: 100%;
+}
+
+/* Form Elements */
 .day-type-select, 
 .day-type-select-calendar {
   width: 100%;
@@ -832,36 +830,4 @@ tfoot tr {
     padding: 0.15rem 0.25rem;
     font-size: 0.6rem;
   }
-}
-
-/* Make sure the vacation-day class applies a clear orange background to calendar days */
-
-.calendar-day.vacation-day {
-  background-color: rgba(245, 158, 11, var(--opacity-medium));
-}
-
-.calendar-day.vacation-day:hover {
-  background-color: rgba(245, 158, 11, var(--opacity-high));
-}
-
-/* Ensure that weekend vacation days also have the vacation styling */
-.calendar-day.weekend.vacation-day {
-  background-color: rgba(245, 158, 11, var(--opacity-medium)) !important;
-}
-
-/* Fix for the day type button display */
-.calendar-day.vacation-day .vacation-btn {
-  display: none;
-}
-
-.calendar-day.vacation-day .workday-btn {
-  max-width: 100%;
-}
-
-.calendar-day:not(.vacation-day) .workday-btn {
-  display: none;
-}
-
-.calendar-day:not(.vacation-day) .vacation-btn {
-  max-width: 100%;
 }
