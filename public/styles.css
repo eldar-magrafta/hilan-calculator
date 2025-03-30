@@ -833,3 +833,35 @@ tfoot tr {
     font-size: 0.6rem;
   }
 }
+
+/* Make sure the vacation-day class applies a clear orange background to calendar days */
+
+.calendar-day.vacation-day {
+  background-color: rgba(245, 158, 11, var(--opacity-medium));
+}
+
+.calendar-day.vacation-day:hover {
+  background-color: rgba(245, 158, 11, var(--opacity-high));
+}
+
+/* Ensure that weekend vacation days also have the vacation styling */
+.calendar-day.weekend.vacation-day {
+  background-color: rgba(245, 158, 11, var(--opacity-medium)) !important;
+}
+
+/* Fix for the day type button display */
+.calendar-day.vacation-day .vacation-btn {
+  display: none;
+}
+
+.calendar-day.vacation-day .workday-btn {
+  max-width: 100%;
+}
+
+.calendar-day:not(.vacation-day) .workday-btn {
+  display: none;
+}
+
+.calendar-day:not(.vacation-day) .vacation-btn {
+  max-width: 100%;
+}

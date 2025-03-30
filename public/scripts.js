@@ -159,6 +159,8 @@ function syncTableView() {
 }
 
 // Function to handle day type change
+// Also need to update the handleDayTypeChange function to handle vacation badges properly
+
 function handleDayTypeChange(date, type) {
   // Update the global working day types object
   workingDayTypes[date] = type;
@@ -169,13 +171,25 @@ function handleDayTypeChange(date, type) {
   // Update calendar day appearance if it exists
   const calendarDay = document.querySelector(`.calendar-day[data-date="${date}"]`);
   if (calendarDay) {
+    // Check if it's a weekend day
+    const [day, month, year] = parseDate(date);
+    const dayDate = createDateObject(day, month, year);
+    const dayOfWeek = dayDate.getDay();
+    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6; // Friday or Saturday
+    
     if (type === DAY_TYPES.VACATION) {
       calendarDay.classList.add('vacation-day');
-      if (!calendarDay.querySelector('.vacation-badge')) {
-        calendarDay.insertBefore(createVacationBadge(), calendarDay.firstChild);
+      
+      // Only add vacation badge for non-weekend days
+      if (!isWeekend) {
+        if (!calendarDay.querySelector('.vacation-badge')) {
+          calendarDay.insertBefore(createVacationBadge(), calendarDay.firstChild);
+        }
       }
     } else {
       calendarDay.classList.remove('vacation-day');
+      
+      // Always remove the badge if changing back to regular workday
       const badge = calendarDay.querySelector('.vacation-badge');
       if (badge) {
         calendarDay.removeChild(badge);
@@ -323,8 +337,13 @@ function recalculateRequiredHours() {
   }
 }
 
-// Function to generate the calendar view
-// Function to generate the calendar view
+
+// In the generateCalendarView function, we need to modify how the vacation-day class is applied.
+// Look for this part of the code and change it:
+
+// In the generateCalendarView function, we need to modify how the vacation-day class
+// and vacation badges are applied
+
 function generateCalendarView() {
   elements.calendarGrid.innerHTML = '';
   
@@ -360,7 +379,7 @@ function generateCalendarView() {
     const dayCell = document.createElement('div');
     const dayDate = createDateObject(dayOfMonth, month, year);
     const dayOfWeek = dayDate.getDay();
-    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6; // Friday or Saturday
     const isFutureDay = dayDate > currentDate;
     const isPastDay = dayDate < currentDate;
     const isCurrentDay = dayDate.toDateString() === currentDate.toDateString();
@@ -368,10 +387,7 @@ function generateCalendarView() {
     
     // Build class list based on day properties
     let dayClasses = 'calendar-day';
-    if (isWeekend) {
-      dayClasses += ' weekend';
-      dayClasses += ' vacation-day'; // Keep the vacation-day class for the orange background
-    }
+    if (isWeekend) dayClasses += ' weekend';
     if (isFutureDay) dayClasses += ' future-day';
     if (isPastDay) dayClasses += ' past-day';
     if (isCurrentDay) dayClasses += ' current-day';
@@ -388,18 +404,23 @@ function generateCalendarView() {
     // Store the day type
     workingDayTypes[dateString] = dayType;
     
+    // Add vacation-day class if it's marked as a vacation day
+    if (dayType === DAY_TYPES.VACATION) {
+      dayCell.classList.add('vacation-day');
+    }
+    
     // Add day number
     const dayNumber = document.createElement('div');
     dayNumber.className = 'day-number';
     dayNumber.textContent = dayOfMonth;
     dayCell.appendChild(dayNumber);
     
-    // Add vacation styling if needed (only add badge for non-weekend vacation days)
+    // Add vacation badge ONLY to non-weekend vacation days
     if (dayType === DAY_TYPES.VACATION && !isWeekend) {
-      dayCell.classList.add('vacation-day');
       dayCell.appendChild(createVacationBadge());
     }
     
+    // Rest of the function remains the same...
     // Add hours if present - moved up in the layout
     if (entry && entry.time && isValidTimeFormat(entry.time)) {
       const dayHours = document.createElement('div');
