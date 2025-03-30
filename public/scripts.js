@@ -48,7 +48,7 @@ const elements = {
   // Constants
   const DAY_TYPES = {
     REGULAR: 'יום עבודה',
-    VACATION: 'יום חופשה'
+    VACATION: 'חופש'
   };
   
   const STATUS_CLASSES = {
@@ -246,6 +246,14 @@ const elements = {
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
     
+    // Count completed days for the ratio display
+    const completedDays = allMonthEntries.filter(entry => 
+      !entry.isFutureDay && 
+      entry.time && 
+      entry.time !== '---' && 
+      isValidTimeFormat(entry.time)
+    ).length;
+    
     allMonthEntries.forEach(entry => {
       const dayType = workingDayTypes[entry.date] || DAY_TYPES.REGULAR;
       
@@ -269,7 +277,8 @@ const elements = {
       }
     });
     
-    elements.regularWorkdaysElement.textContent = regularWorkdaysCount;
+    // Update regular workdays with the ratio format: regular / completed
+    elements.regularWorkdaysElement.textContent = regularWorkdaysCount + " / " + completedDays;
     
     const totalRequiredHours = Math.floor(totalRequiredMinutes / 60);
     const totalRequiredRemainingMinutes = totalRequiredMinutes % 60;
@@ -339,7 +348,7 @@ const elements = {
       );
       
       const hoursRemaining = remainingRequiredMinutes / 60;
-      if (hoursRemaining < 5) {
+      if (hoursRemaining <= 0) {
         elements.remainingHoursCard.classList.add(STATUS_CLASSES.COMPLETED);
       } else if (hoursRemaining >= 5 && hoursRemaining < 10) {
         elements.remainingHoursCard.classList.add(STATUS_CLASSES.NEARLY_COMPLETED);
@@ -558,7 +567,16 @@ function displayWorkHours(result) {
     }
   });
   
-  elements.regularWorkdaysElement.textContent = regularWorkdaysCount;
+  // Count completed days
+  const completedDays = result.entries.filter(entry => 
+    !entry.isFutureDay && 
+    entry.time && 
+    entry.time !== '---' && 
+    isValidTimeFormat(entry.time)
+  ).length;
+  
+  // Display ratio format of regular/completed days
+  elements.regularWorkdaysElement.textContent = regularWorkdaysCount + " / " + completedDays;
   
   result.entries.forEach(entry => {
     const row = document.createElement('tr');
@@ -640,14 +658,6 @@ function displayWorkHours(result) {
   const hebrewFormatted = formatHoursMinutes(result.totalHours, result.remainingMinutes);
   elements.totalFormatted.textContent = hebrewFormatted;
   
-  const completedDays = result.entries.filter(entry => 
-    !entry.isFutureDay && 
-    entry.time && 
-    entry.time !== '---' && 
-    isValidTimeFormat(entry.time)
-  ).length;
-  
-  elements.totalDaysElement.textContent = completedDays;
   elements.totalHoursElement.textContent = hebrewFormatted;
   elements.dailyAverageElement.textContent = calculateDailyAverage(result.totalMinutes, completedDays);
   

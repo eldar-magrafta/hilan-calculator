@@ -16,6 +16,7 @@
   --holiday-color: #eb6811;
   --error-color: #ef476f;        /* Error state color */
   --green-color: #10b981;        /* Green elements */
+  --future-day-color: #3a86ff;   /* Blue color for future days */
   
   /* Opacity values */
   --opacity-low: 0.05;
@@ -535,8 +536,9 @@ tfoot tr {
 }
 
 .future-day .day-number {
-  background-color: var(--accent-color);
+  background-color: var(--future-day-color);
   color: white;
+  box-shadow: 0 2px 8px rgba(58, 134, 255, 0.3);
 }
 
 .calendar-day.past-day .day-number {
@@ -671,7 +673,6 @@ tfoot tr {
   display: none; 
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
