@@ -536,6 +536,7 @@ tfoot tr {
   padding-top: 35px;
   padding-bottom: 35px;
   border-right: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
