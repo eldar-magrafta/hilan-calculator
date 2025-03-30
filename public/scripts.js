@@ -1,363 +1,329 @@
 // DOM Elements with efficient caching
 const elements = {
-    // Main UI containers
-    loginForm: document.getElementById('login-form'),
-    loginCard: document.getElementById('login-card'),
-    resultsCard: document.getElementById('results-card'),
-    errorCard: document.getElementById('error-card'),
-    loader: document.getElementById('loader'),
-    
-    // Error handling elements
-    errorMessage: document.getElementById('error-message'),
-    tryAgainButton: document.getElementById('try-again'),
-    
-    // Table view elements
-    hoursTableBody: document.getElementById('hours-table-body'),
-    totalFormatted: document.getElementById('total-formatted'),
-    
-    // Summary elements
-    regularWorkdaysElement: document.getElementById('regular-workdays'),
-    totalDaysElement: document.getElementById('total-days'),
-    totalHoursElement: document.getElementById('total-hours'),
-    dailyAverageElement: document.getElementById('daily-average'),
-    dailyRequiredHoursElement: document.getElementById('daily-required-hours'),
-    monthlyRequirementElement: document.getElementById('monthly-requirement'),
-    remainingHoursElement: document.getElementById('remaining-hours'),
-    completionPercentageElement: document.getElementById('completion-percentage'),
-    
-    // View toggle elements
-    exportCsvButton: document.getElementById('export-csv'),
-    printResultsButton: document.getElementById('print-results'),
-    toggleViewButton: document.getElementById('toggle-view'),
-    tableView: document.getElementById('table-view'),
-    calendarView: document.getElementById('calendar-view'),
-    calendarGrid: document.getElementById('calendar-grid'),
-    calendarMonthName: document.getElementById('calendar-month-name'),
-    
-    // Status cards
-    requiredHoursCard: document.getElementById('required-hours-card'),
-    remainingHoursCard: document.getElementById('remaining-hours-card'),
-    completionCard: document.getElementById('completion-card')
-  };
+  // Main UI containers
+  loginForm: document.getElementById('login-form'),
+  loginCard: document.getElementById('login-card'),
+  resultsCard: document.getElementById('results-card'),
+  errorCard: document.getElementById('error-card'),
+  loader: document.getElementById('loader'),
   
-  // Global variables
-  let workingDayTypes = {}; // Store day types keyed by date
-  let allMonthEntries = []; // Store all month entries
-  let currentView = 'calendar'; // Current view state - Can be 'table' or 'calendar'
+  // Error handling elements
+  errorMessage: document.getElementById('error-message'),
+  tryAgainButton: document.getElementById('try-again'),
   
-  // Constants
-  const DAY_TYPES = {
-    REGULAR: 'יום עבודה',
-    VACATION: 'חופש'
-  };
+  // Table view elements
+  hoursTableBody: document.getElementById('hours-table-body'),
+  totalFormatted: document.getElementById('total-formatted'),
   
-  const STATUS_CLASSES = {
-    LOW: 'low-completion',
-    MID: 'mid-completion',
-    HIGH: 'high-completion',
-    COMPLETE: 'complete-completion',
-    COMPLETED: 'completed-hours',
-    NEARLY_COMPLETED: 'nearly-completed-hours',
-    PENDING: 'pending-hours'
-  };
+  // Summary elements
+  regularWorkdaysElement: document.getElementById('regular-workdays'),
+  totalHoursElement: document.getElementById('total-hours'),
+  dailyAverageElement: document.getElementById('daily-average'),
+  dailyRequiredHoursElement: document.getElementById('daily-required-hours'),
+  monthlyRequirementElement: document.getElementById('monthly-requirement'),
+  remainingHoursElement: document.getElementById('remaining-hours'),
+  completionPercentageElement: document.getElementById('completion-percentage'),
   
-  // Hebrew day names
-  const hebrewDayNames = {
-    'Sunday': 'ראשון',
-    'Monday': 'שני',
-    'Tuesday': 'שלישי',
-    'Wednesday': 'רביעי',
-    'Thursday': 'חמישי',
-    'Friday': 'שישי',
-    'Saturday': 'שבת'
-  };
+  // View toggle elements
+  exportCsvButton: document.getElementById('export-csv'),
+  printResultsButton: document.getElementById('print-results'),
+  toggleViewButton: document.getElementById('toggle-view'),
+  tableView: document.getElementById('table-view'),
+  calendarView: document.getElementById('calendar-view'),
+  calendarGrid: document.getElementById('calendar-grid'),
+  calendarMonthName: document.getElementById('calendar-month-name'),
   
-  // Hebrew month names
-  const hebrewMonths = [
-    'ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
-    'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'
-  ];
+  // Status cards
+  requiredHoursCard: document.getElementById('required-hours-card'),
+  remainingHoursCard: document.getElementById('remaining-hours-card'),
+  completionCard: document.getElementById('completion-card')
+};
+
+// Global variables
+let workingDayTypes = {}; // Store day types keyed by date
+let allMonthEntries = []; // Store all month entries
+let currentView = 'calendar'; // Current view state - Can be 'table' or 'calendar'
+
+// Constants
+const DAY_TYPES = {
+  REGULAR: 'יום עבודה',
+  VACATION: 'חופש'
+};
+
+const STATUS_CLASSES = {
+  LOW: 'low-completion',
+  MID: 'mid-completion',
+  HIGH: 'high-completion',
+  COMPLETE: 'complete-completion',
+  COMPLETED: 'completed-hours',
+  NEARLY_COMPLETED: 'nearly-completed-hours',
+  PENDING: 'pending-hours'
+};
+
+// Hebrew day names
+const hebrewDayNames = {
+  'Sunday': 'ראשון',
+  'Monday': 'שני',
+  'Tuesday': 'שלישי',
+  'Wednesday': 'רביעי',
+  'Thursday': 'חמישי',
+  'Friday': 'שישי',
+  'Saturday': 'שבת'
+};
+
+// Hebrew month names
+const hebrewMonths = [
+  'ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
+  'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'
+];
+
+// Helper functions
+function parseDate(dateString) {
+  return dateString.split('/').map(Number);
+}
+
+function createDateObject(day, month, year) {
+  return new Date(year, month - 1, day);
+}
+
+function isWeekend(dayName) {
+  return dayName === 'Friday' || dayName === 'Saturday';
+}
+
+function isValidTimeFormat(timeString) {
+  return timeString && timeString.match(/^\d+:\d+$/);
+}
+
+function createVacationBadge() {
+  const badge = document.createElement('span');
+  badge.className = 'vacation-badge';
+  badge.textContent = 'חופשה';
+  return badge;
+}
+
+function updateElementClass(element, classesToRemove, classToAdd) {
+  if (!element) return;
   
-  // Helper functions
-  function parseDate(dateString) {
-    return dateString.split('/').map(Number);
+  if (Array.isArray(classesToRemove)) {
+    element.classList.remove(...classesToRemove);
   }
   
-  function createDateObject(day, month, year) {
-    return new Date(year, month - 1, day);
+  if (classToAdd) {
+    element.classList.add(classToAdd);
   }
-  
-  function isWeekend(dayName) {
-    return dayName === 'Friday' || dayName === 'Saturday';
-  }
-  
-  function isValidTimeFormat(timeString) {
-    return timeString && timeString.match(/^\d+:\d+$/);
-  }
-  
-  function createVacationBadge() {
-    const badge = document.createElement('span');
-    badge.className = 'vacation-badge';
-    badge.textContent = 'חופשה';
-    return badge;
-  }
-  
-  function updateElementClass(element, classesToRemove, classToAdd) {
-    if (!element) return;
+}
+
+// Function to toggle between table and calendar views
+function toggleView() {
+  if (currentView === 'table') {
+    // Switch to calendar view
+    elements.tableView.classList.add('hidden');
+    elements.calendarView.classList.remove('hidden');
+    elements.toggleViewButton.innerHTML = '<i class="fas fa-table"></i> מעבר לתצוגת טבלה';
+    currentView = 'calendar';
     
-    if (Array.isArray(classesToRemove)) {
-      element.classList.remove(...classesToRemove);
+    // Generate calendar if we have data
+    if (allMonthEntries && allMonthEntries.length > 0) {
+      generateCalendarView();
     }
+  } else {
+    // Switch to table view
+    elements.calendarView.classList.add('hidden');
+    elements.tableView.classList.remove('hidden');
+    elements.toggleViewButton.innerHTML = '<i class="fas fa-calendar-alt"></i> מעבר לתצוגת לוח שנה';
+    currentView = 'table';
     
-    if (classToAdd) {
-      element.classList.add(classToAdd);
-    }
+    // Sync table with current workingDayTypes
+    syncTableView();
   }
-  
-  // Function to toggle between table and calendar views
-  function toggleView() {
-    if (currentView === 'table') {
-      // Switch to calendar view
-      elements.tableView.classList.add('hidden');
-      elements.calendarView.classList.remove('hidden');
-      elements.toggleViewButton.innerHTML = '<i class="fas fa-table"></i> מעבר לתצוגת טבלה';
-      currentView = 'calendar';
+}
+
+// Function to sync table view with workingDayTypes
+function syncTableView() {
+  document.querySelectorAll('.day-type-select').forEach(select => {
+    const date = select.dataset.date;
+    if (workingDayTypes[date]) {
+      select.value = workingDayTypes[date];
       
-      // Generate calendar if we have data
-      if (allMonthEntries && allMonthEntries.length > 0) {
-        generateCalendarView();
-        
-        // Sync calendar with current workingDayTypes
-        syncCalendarView();
-      }
-    } else {
-      // Switch to table view
-      elements.calendarView.classList.add('hidden');
-      elements.tableView.classList.remove('hidden');
-      elements.toggleViewButton.innerHTML = '<i class="fas fa-calendar-alt"></i> מעבר לתצוגת לוח שנה';
-      currentView = 'table';
-      
-      // Sync table with current workingDayTypes
-      syncTableView();
-    }
-  }
-  
-  // Function to sync calendar view with workingDayTypes
-  function syncCalendarView() {
-    document.querySelectorAll('.day-type-select-calendar').forEach(select => {
-      const date = select.dataset.date;
-      if (workingDayTypes[date]) {
-        select.value = workingDayTypes[date];
-        
-        // Update visual appearance based on the type
-        const dayCell = select.closest('.calendar-day');
-        if (workingDayTypes[date] === DAY_TYPES.VACATION) {
-          dayCell.classList.add('vacation-day');
-          if (!dayCell.querySelector('.vacation-badge')) {
-            dayCell.insertBefore(createVacationBadge(), dayCell.firstChild);
-          }
-        } else {
-          dayCell.classList.remove('vacation-day');
-          const badge = dayCell.querySelector('.vacation-badge');
-          if (badge) {
-            dayCell.removeChild(badge);
-          }
-        }
-      }
-    });
-  }
-  
-  // Function to sync table view with workingDayTypes
-  function syncTableView() {
-    document.querySelectorAll('.day-type-select').forEach(select => {
-      const date = select.dataset.date;
-      if (workingDayTypes[date]) {
-        select.value = workingDayTypes[date];
-        
-        // Update row styling
-        const row = select.closest('tr');
-        if (row) {
-          if (workingDayTypes[date] === DAY_TYPES.VACATION) {
-            row.classList.add('vacation-day-row');
-          } else {
-            row.classList.remove('vacation-day-row');
-          }
-        }
-      }
-    });
-  }
-  
-  // Function to handle day type change
-  function handleDayTypeChange(date, type) {
-    // Update the global working day types object
-    workingDayTypes[date] = type;
-    
-    // Recalculate the required hours
-    recalculateRequiredHours();
-    
-    // Update calendar view element
-    const calendarSelect = document.querySelector(`.day-type-select-calendar[data-date="${date}"]`);
-    if (calendarSelect) {
-      calendarSelect.value = type;
-      
-      // Update the day cell appearance
-      const dayCell = calendarSelect.closest('.calendar-day');
-      if (dayCell) {
-        if (type === DAY_TYPES.VACATION) {
-          dayCell.classList.add('vacation-day');
-          if (!dayCell.querySelector('.vacation-badge')) {
-            dayCell.insertBefore(createVacationBadge(), dayCell.firstChild);
-          }
-        } else {
-          dayCell.classList.remove('vacation-day');
-          const badge = dayCell.querySelector('.vacation-badge');
-          if (badge) {
-            dayCell.removeChild(badge);
-          }
-        }
-      }
-    }
-    
-    // Update table view element
-    const tableSelect = document.querySelector(`.day-type-select[data-date="${date}"]`);
-    if (tableSelect) {
-      tableSelect.value = type;
-      
-      // Update the row styling
-      const row = tableSelect.closest('tr');
+      // Update row styling
+      const row = select.closest('tr');
       if (row) {
-        if (type === DAY_TYPES.VACATION) {
+        if (workingDayTypes[date] === DAY_TYPES.VACATION) {
           row.classList.add('vacation-day-row');
         } else {
           row.classList.remove('vacation-day-row');
         }
       }
     }
+  });
+}
+
+// Function to handle day type change
+function handleDayTypeChange(date, type) {
+  // Update the global working day types object
+  workingDayTypes[date] = type;
+  
+  // Recalculate the required hours
+  recalculateRequiredHours();
+  
+  // Update calendar day appearance if it exists
+  const calendarDay = document.querySelector(`.calendar-day[data-date="${date}"]`);
+  if (calendarDay) {
+    if (type === DAY_TYPES.VACATION) {
+      calendarDay.classList.add('vacation-day');
+      if (!calendarDay.querySelector('.vacation-badge')) {
+        calendarDay.insertBefore(createVacationBadge(), calendarDay.firstChild);
+      }
+    } else {
+      calendarDay.classList.remove('vacation-day');
+      const badge = calendarDay.querySelector('.vacation-badge');
+      if (badge) {
+        calendarDay.removeChild(badge);
+      }
+    }
   }
   
-  // Function to recalculate required hours based on day types
-  function recalculateRequiredHours() {
-    if (!allMonthEntries || allMonthEntries.length === 0) return;
+  // Update table view element
+  const tableSelect = document.querySelector(`.day-type-select[data-date="${date}"]`);
+  if (tableSelect) {
+    tableSelect.value = type;
     
-    let totalRequiredMinutes = 0;
-    const minutesPerWorkday = 9 * 60;
-    let regularWorkdaysCount = 0;
-    let remainingWorkdaysCount = 0;
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    
-    // Count completed days for the ratio display
-    const completedDays = allMonthEntries.filter(entry => 
-      !entry.isFutureDay && 
-      entry.time && 
-      entry.time !== '---' && 
-      isValidTimeFormat(entry.time)
-    ).length;
-    
-    allMonthEntries.forEach(entry => {
-      const dayType = workingDayTypes[entry.date] || DAY_TYPES.REGULAR;
-      
-      if (dayType === DAY_TYPES.REGULAR) {
-        const [day, month, year] = parseDate(entry.date);
-        const entryDate = createDateObject(day, month, year);
-        const dayOfWeek = entryDate.getDay();
-        
-        regularWorkdaysCount++;
-        
-        // Count remaining work days (today and future days)
-        if (entryDate >= currentDate) {
-          remainingWorkdaysCount++;
-        }
-        
-        if (dayOfWeek === 4) {
-          totalRequiredMinutes += 8.5 * 60;
-        } else {
-          totalRequiredMinutes += minutesPerWorkday;
-        }
-      }
-    });
-    
-    // Update regular workdays with the ratio format: regular / completed
-    elements.regularWorkdaysElement.textContent = regularWorkdaysCount + " / " + completedDays;
-    
-    const totalRequiredHours = Math.floor(totalRequiredMinutes / 60);
-    const totalRequiredRemainingMinutes = totalRequiredMinutes % 60;
-    
-    const totalHoursText = elements.totalHoursElement.textContent;
-    let completedHours = 0;
-    let completedMinutes = 0;
-    
-    const completedMatch = totalHoursText.match(/(\d+) שעות(?: ו-?(\d+) דקות)?/);
-    if (completedMatch) {
-      completedHours = parseInt(completedMatch[1], 10) || 0;
-      completedMinutes = parseInt(completedMatch[2], 10) || 0;
-    }
-    
-    const totalCompletedMinutes = (completedHours * 60) + completedMinutes;
-    const remainingRequiredMinutes = Math.max(0, totalRequiredMinutes - totalCompletedMinutes);
-    
-    const remainingHours = Math.floor(remainingRequiredMinutes / 60);
-    const remainingMinutes = remainingRequiredMinutes % 60;
-    
-    // Calculate daily required hours in hours and minutes
-    let dailyRequiredHours = 0;
-    let dailyRequiredMinutes = 0;
-    
-    if (remainingWorkdaysCount > 0) {
-      const totalDailyRequiredMinutes = Math.round(remainingRequiredMinutes / remainingWorkdaysCount);
-      dailyRequiredHours = Math.floor(totalDailyRequiredMinutes / 60);
-      dailyRequiredMinutes = totalDailyRequiredMinutes % 60;
-    }
-    
-    const safeRequiredMinutes = Math.max(1, totalRequiredMinutes);
-    const completionPercentage = (totalCompletedMinutes / safeRequiredMinutes) * 100;
-    const formattedPercentage = completionPercentage.toFixed(1);
-    
-    elements.monthlyRequirementElement.textContent = `${totalRequiredHours} שעות ${totalRequiredRemainingMinutes > 0 ? `${totalRequiredRemainingMinutes} דקות` : ''}`;
-    elements.remainingHoursElement.textContent = `${remainingHours} שעות ${remainingMinutes > 0 ? `${remainingMinutes} דקות` : ''}`;
-    
-    // Format daily required hours in X:Y format
-    const formattedDailyMinutes = dailyRequiredMinutes < 10 ? `0${dailyRequiredMinutes}` : dailyRequiredMinutes;
-    elements.dailyRequiredHoursElement.textContent = `${dailyRequiredHours}:${formattedDailyMinutes}`;
-    
-    if (elements.completionPercentageElement) {
-      elements.completionPercentageElement.textContent = `${formattedPercentage}%`;
-      
-      if (elements.completionCard) {
-        updateElementClass(
-          elements.completionCard, 
-          [STATUS_CLASSES.LOW, STATUS_CLASSES.MID, STATUS_CLASSES.HIGH, STATUS_CLASSES.COMPLETE]
-        );
-        
-        if (completionPercentage < 50) {
-          elements.completionCard.classList.add(STATUS_CLASSES.LOW);
-        } else if (completionPercentage < 80) {
-          elements.completionCard.classList.add(STATUS_CLASSES.MID);
-        } else if (completionPercentage < 100) {
-          elements.completionCard.classList.add(STATUS_CLASSES.HIGH);
-        } else {
-          elements.completionCard.classList.add(STATUS_CLASSES.COMPLETE);
-        }
+    // Update the row styling
+    const row = tableSelect.closest('tr');
+    if (row) {
+      if (type === DAY_TYPES.VACATION) {
+        row.classList.add('vacation-day-row');
+      } else {
+        row.classList.remove('vacation-day-row');
       }
     }
+  }
+}
+
+// Function to recalculate required hours based on day types
+function recalculateRequiredHours() {
+  if (!allMonthEntries || allMonthEntries.length === 0) return;
+  
+  let totalRequiredMinutes = 0;
+  const minutesPerWorkday = 9 * 60;
+  let regularWorkdaysCount = 0;
+  let remainingWorkdaysCount = 0;
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  
+  // Count completed days for the ratio display
+  const completedDays = allMonthEntries.filter(entry => 
+    !entry.isFutureDay && 
+    entry.time && 
+    entry.time !== '---' && 
+    isValidTimeFormat(entry.time)
+  ).length;
+  
+  allMonthEntries.forEach(entry => {
+    const dayType = workingDayTypes[entry.date] || DAY_TYPES.REGULAR;
     
-    if (elements.remainingHoursCard) {
+    if (dayType === DAY_TYPES.REGULAR) {
+      const [day, month, year] = parseDate(entry.date);
+      const entryDate = createDateObject(day, month, year);
+      const dayOfWeek = entryDate.getDay();
+      
+      regularWorkdaysCount++;
+      
+      // Count remaining work days (today and future days)
+      if (entryDate >= currentDate) {
+        remainingWorkdaysCount++;
+      }
+      
+      if (dayOfWeek === 4) {
+        totalRequiredMinutes += 8.5 * 60;
+      } else {
+        totalRequiredMinutes += minutesPerWorkday;
+      }
+    }
+  });
+  
+  // Update regular workdays with the ratio format: regular / completed
+  elements.regularWorkdaysElement.textContent = regularWorkdaysCount + " / " + completedDays;
+  
+  const totalRequiredHours = Math.floor(totalRequiredMinutes / 60);
+  const totalRequiredRemainingMinutes = totalRequiredMinutes % 60;
+  
+  const totalHoursText = elements.totalHoursElement.textContent;
+  let completedHours = 0;
+  let completedMinutes = 0;
+  
+  const completedMatch = totalHoursText.match(/(\d+) שעות(?: ו-?(\d+) דקות)?/);
+  if (completedMatch) {
+    completedHours = parseInt(completedMatch[1], 10) || 0;
+    completedMinutes = parseInt(completedMatch[2], 10) || 0;
+  }
+  
+  const totalCompletedMinutes = (completedHours * 60) + completedMinutes;
+  const remainingRequiredMinutes = Math.max(0, totalRequiredMinutes - totalCompletedMinutes);
+  
+  const remainingHours = Math.floor(remainingRequiredMinutes / 60);
+  const remainingMinutes = remainingRequiredMinutes % 60;
+  
+  // Calculate daily required hours in hours and minutes
+  let dailyRequiredHours = 0;
+  let dailyRequiredMinutes = 0;
+  
+  if (remainingWorkdaysCount > 0) {
+    const totalDailyRequiredMinutes = Math.round(remainingRequiredMinutes / remainingWorkdaysCount);
+    dailyRequiredHours = Math.floor(totalDailyRequiredMinutes / 60);
+    dailyRequiredMinutes = totalDailyRequiredMinutes % 60;
+  }
+  
+  const safeRequiredMinutes = Math.max(1, totalRequiredMinutes);
+  const completionPercentage = (totalCompletedMinutes / safeRequiredMinutes) * 100;
+  const formattedPercentage = completionPercentage.toFixed(1);
+  
+  elements.monthlyRequirementElement.textContent = `${totalRequiredHours} שעות ${totalRequiredRemainingMinutes > 0 ? `${totalRequiredRemainingMinutes} דקות` : ''}`;
+  elements.remainingHoursElement.textContent = `${remainingHours} שעות ${remainingMinutes > 0 ? `${remainingMinutes} דקות` : ''}`;
+  
+  // Format daily required hours in X:Y format
+  const formattedDailyMinutes = dailyRequiredMinutes < 10 ? `0${dailyRequiredMinutes}` : dailyRequiredMinutes;
+  elements.dailyRequiredHoursElement.textContent = `${dailyRequiredHours}:${formattedDailyMinutes}`;
+  
+  if (elements.completionPercentageElement) {
+    elements.completionPercentageElement.textContent = `${formattedPercentage}%`;
+    
+    if (elements.completionCard) {
       updateElementClass(
-        elements.remainingHoursCard, 
-        [STATUS_CLASSES.COMPLETED, STATUS_CLASSES.NEARLY_COMPLETED, STATUS_CLASSES.PENDING]
+        elements.completionCard, 
+        [STATUS_CLASSES.LOW, STATUS_CLASSES.MID, STATUS_CLASSES.HIGH, STATUS_CLASSES.COMPLETE]
       );
       
-      const hoursRemaining = remainingRequiredMinutes / 60;
-      if (hoursRemaining <= 0) {
-        elements.remainingHoursCard.classList.add(STATUS_CLASSES.COMPLETED);
-      } else if (hoursRemaining >= 5 && hoursRemaining < 10) {
-        elements.remainingHoursCard.classList.add(STATUS_CLASSES.NEARLY_COMPLETED);
+      if (completionPercentage < 50) {
+        elements.completionCard.classList.add(STATUS_CLASSES.LOW);
+      } else if (completionPercentage < 80) {
+        elements.completionCard.classList.add(STATUS_CLASSES.MID);
+      } else if (completionPercentage < 100) {
+        elements.completionCard.classList.add(STATUS_CLASSES.HIGH);
       } else {
-        elements.remainingHoursCard.classList.add(STATUS_CLASSES.PENDING);
+        elements.completionCard.classList.add(STATUS_CLASSES.COMPLETE);
       }
     }
   }
   
+  if (elements.remainingHoursCard) {
+    updateElementClass(
+      elements.remainingHoursCard, 
+      [STATUS_CLASSES.COMPLETED, STATUS_CLASSES.NEARLY_COMPLETED, STATUS_CLASSES.PENDING]
+    );
+    
+    const hoursRemaining = remainingRequiredMinutes / 60;
+    if (hoursRemaining <= 0) {
+      elements.remainingHoursCard.classList.add(STATUS_CLASSES.COMPLETED);
+    } else if (hoursRemaining >= 5 && hoursRemaining < 10) {
+      elements.remainingHoursCard.classList.add(STATUS_CLASSES.NEARLY_COMPLETED);
+    } else {
+      elements.remainingHoursCard.classList.add(STATUS_CLASSES.PENDING);
+    }
+  }
+}
+
+// Function to generate the calendar view
 // Function to generate the calendar view
 function generateCalendarView() {
   elements.calendarGrid.innerHTML = '';
@@ -398,6 +364,7 @@ function generateCalendarView() {
     const isFutureDay = dayDate > currentDate;
     const isPastDay = dayDate < currentDate;
     const isCurrentDay = dayDate.toDateString() === currentDate.toDateString();
+    const dateString = `${dayOfMonth}/${month}/${year}`;
     
     // Build class list based on day properties
     let dayClasses = 'calendar-day';
@@ -410,18 +377,16 @@ function generateCalendarView() {
     if (isCurrentDay) dayClasses += ' current-day';
     
     dayCell.className = dayClasses;
+    dayCell.setAttribute('data-date', dateString);
     
     const entry = entriesByDay[dayOfMonth];
     
     // Determine day type based on various factors
-    const dayType = workingDayTypes[`${dayOfMonth}/${month}/${year}`] || 
+    const dayType = workingDayTypes[dateString] || 
                   (isWeekend || (entry && entry.isHoliday) ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
     
-    // Add vacation styling if needed (only add badge for non-weekend vacation days)
-    if (dayType === DAY_TYPES.VACATION && !isWeekend) {
-      dayCell.classList.add('vacation-day');
-      dayCell.appendChild(createVacationBadge());
-    }
+    // Store the day type
+    workingDayTypes[dateString] = dayType;
     
     // Add day number
     const dayNumber = document.createElement('div');
@@ -429,7 +394,13 @@ function generateCalendarView() {
     dayNumber.textContent = dayOfMonth;
     dayCell.appendChild(dayNumber);
     
-    // Add hours if present
+    // Add vacation styling if needed (only add badge for non-weekend vacation days)
+    if (dayType === DAY_TYPES.VACATION && !isWeekend) {
+      dayCell.classList.add('vacation-day');
+      dayCell.appendChild(createVacationBadge());
+    }
+    
+    // Add hours if present - moved up in the layout
     if (entry && entry.time && isValidTimeFormat(entry.time)) {
       const dayHours = document.createElement('div');
       dayHours.className = 'day-hours';
@@ -445,101 +416,75 @@ function generateCalendarView() {
       dayCell.appendChild(holidayNameEl);
     }
     
-    // Add day type selector or display - but only for non-weekend days
-    if (!isWeekend) {
-      const dayTypeContainer = document.createElement('div');
-      dayTypeContainer.className = 'day-type';
-      
-      // Regular dropdown for non-weekend days
-      const dayTypeSelect = document.createElement('select');
-      dayTypeSelect.className = 'day-type-select-calendar';
-      dayTypeSelect.dataset.date = `${dayOfMonth}/${month}/${year}`;
-      
-      // Regular day option
-      const regularOption = document.createElement('option');
-      regularOption.value = DAY_TYPES.REGULAR;
-      regularOption.textContent = DAY_TYPES.REGULAR;
-      regularOption.selected = dayType === DAY_TYPES.REGULAR && !(entry && entry.isHoliday);
-      
-      // Vacation day option
-      const vacationOption = document.createElement('option');
-      vacationOption.value = DAY_TYPES.VACATION;
-      vacationOption.textContent = DAY_TYPES.VACATION;
-      vacationOption.selected = dayType === DAY_TYPES.VACATION || (entry && entry.isHoliday);
-      
-      dayTypeSelect.appendChild(regularOption);
-      dayTypeSelect.appendChild(vacationOption);
-      dayTypeContainer.appendChild(dayTypeSelect);
-      dayCell.appendChild(dayTypeContainer);
-    }
+    // Add a spacer div to push content apart
+    const spacer = document.createElement('div');
+    spacer.style.flexGrow = '1';
+    dayCell.appendChild(spacer);
     
-    // Store the value in workingDayTypes for weekend days
-    if (isWeekend) {
-      workingDayTypes[`${dayOfMonth}/${month}/${year}`] = DAY_TYPES.VACATION;
+    // Add action buttons for non-weekend days at the bottom
+    if (!isWeekend) {
+      const dayActions = document.createElement('div');
+      dayActions.className = 'day-actions';
+      
+      // Vacation button - show only for regular workdays
+      const vacationBtn = document.createElement('button');
+      vacationBtn.className = 'action-btn vacation-btn';
+      vacationBtn.innerHTML = '<i class="fas fa-umbrella-beach"></i> חופשה';
+      vacationBtn.setAttribute('data-date', dateString);
+      vacationBtn.addEventListener('click', function() {
+        handleDayTypeChange(dateString, DAY_TYPES.VACATION);
+      });
+      
+      // Workday button - show only for vacation days
+      const workdayBtn = document.createElement('button');
+      workdayBtn.className = 'action-btn workday-btn';
+      workdayBtn.innerHTML = '<i class="fas fa-briefcase"></i> יום עבודה';
+      workdayBtn.setAttribute('data-date', dateString);
+      workdayBtn.addEventListener('click', function() {
+        handleDayTypeChange(dateString, DAY_TYPES.REGULAR);
+      });
+      
+      dayActions.appendChild(vacationBtn);
+      dayActions.appendChild(workdayBtn);
+      dayCell.appendChild(dayActions);
     }
     
     elements.calendarGrid.appendChild(dayCell);
   }
-  
-  // Add event listeners to day type selectors
-  document.querySelectorAll('.day-type-select-calendar').forEach(select => {
-    select.addEventListener('change', function() {
-      const date = this.dataset.date;
-      const type = this.value;
-      
-      // Handle UI update for the calendar day
-      const dayCell = this.closest('.calendar-day');
-      if (type === DAY_TYPES.VACATION) {
-        dayCell.classList.add('vacation-day');
-        if (!dayCell.querySelector('.vacation-badge')) {
-          dayCell.insertBefore(createVacationBadge(), dayCell.firstChild);
-        }
-      } else {
-        dayCell.classList.remove('vacation-day');
-        const badge = dayCell.querySelector('.vacation-badge');
-        if (badge) {
-          dayCell.removeChild(badge);
-        }
-      }
-      
-      // Update the global state and other views
-      handleDayTypeChange(date, type);
-    });
-  });
 }
+
+// Helper function to calculate daily average
+function calculateDailyAverage(totalMinutes, days) {
+  if (!days || days === 0) return '0:00';
   
-  // Helper function to calculate daily average
-  function calculateDailyAverage(totalMinutes, days) {
-    if (!days || days === 0) return '0:00';
-    
-    const avgMinutes = Math.round(totalMinutes / days);
-    const hours = Math.floor(avgMinutes / 60);
-    const minutes = avgMinutes % 60;
-    
-    return `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+  const avgMinutes = Math.round(totalMinutes / days);
+  const hours = Math.floor(avgMinutes / 60);
+  const minutes = avgMinutes % 60;
+  
+  return `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+}
+
+// Function to format hours and minutes in Hebrew
+function formatHoursMinutes(hours, minutes) {
+  let result = '';
+  
+  if (hours === 1) {
+    result = 'שעה אחת';
+  } else {
+    result = `${hours} שעות`;
   }
   
-  // Function to format hours and minutes in Hebrew
-  function formatHoursMinutes(hours, minutes) {
-    let result = '';
-    
-    if (hours === 1) {
-      result = 'שעה אחת';
+  if (minutes > 0) {
+    if (minutes === 1) {
+      result += ' ודקה אחת';
     } else {
-      result = `${hours} שעות`;
+      result += ` ו-${minutes} דקות`;
     }
-    
-    if (minutes > 0) {
-      if (minutes === 1) {
-        result += ' ודקה אחת';
-      } else {
-        result += ` ו-${minutes} דקות`;
-      }
-    }
-    
-    return result;
   }
   
+  return result;
+}
+
 // Function to display work hours in the table and calendar views
 function displayWorkHours(result) {
   elements.hoursTableBody.innerHTML = '';
@@ -672,126 +617,126 @@ function displayWorkHours(result) {
     generateCalendarView();
   }
 }
+
+// Function to export table to CSV
+function exportToCsv() {
+  // Create CSV content with Hebrew headers
+  let csvContent = "תאריך,יום,שעות,חג,סוג\n";
   
-  // Function to export table to CSV
-  function exportToCsv() {
-    // Create CSV content with Hebrew headers - removed משך
-    let csvContent = "תאריך,יום,שעות,חג,סוג\n";
+  // Add table rows
+  Array.from(elements.hoursTableBody.querySelectorAll('tr')).forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const dayTypeSelect = row.querySelector('.day-type-select');
+    const dayType = dayTypeSelect ? dayTypeSelect.value : DAY_TYPES.REGULAR;
     
-    // Add table rows
-    Array.from(elements.hoursTableBody.querySelectorAll('tr')).forEach(row => {
-      const cells = row.querySelectorAll('td');
-      const dayTypeSelect = row.querySelector('.day-type-select');
-      const dayType = dayTypeSelect ? dayTypeSelect.value : DAY_TYPES.REGULAR;
-      
-      // Create an array of cell values - adjusted indices
-      const rowData = [
-        `"${cells[0].textContent}"`, // Date
-        `"${cells[1].textContent}"`, // Day
-        `"${cells[2].textContent}"`, // Hours (was index 3)
-        `"${cells[3].textContent}"`, // Holiday (was index 4)
-        `"${dayType}"`               // Type
-      ];
-      
-      csvContent += rowData.join(',') + "\n";
+    // Create an array of cell values
+    const rowData = [
+      `"${cells[0].textContent}"`, // Date
+      `"${cells[1].textContent}"`, // Day
+      `"${cells[2].textContent}"`, // Hours
+      `"${cells[3].textContent}"`, // Holiday
+      `"${dayType}"`               // Type
+    ];
+    
+    csvContent += rowData.join(',') + "\n";
+  });
+  
+  // Add total row
+  csvContent += `"סה״כ",,"${elements.totalFormatted.textContent}",""\n`;
+  
+  // Create and trigger download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'שעות_חילן.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// UI state management functions
+function showLoading() {
+  elements.loginCard.classList.add('hidden');
+  elements.resultsCard.classList.add('hidden');
+  elements.errorCard.classList.add('hidden');
+  elements.loader.classList.remove('hidden');
+}
+
+function showError(message) {
+  elements.loginCard.classList.add('hidden');
+  elements.resultsCard.classList.add('hidden');
+  elements.loader.classList.add('hidden');
+  
+  // Translate common error messages to Hebrew
+  if (message.includes('Login failed')) {
+    message = 'ההתחברות נכשלה. אנא בדוק את פרטי ההתחברות שלך.';
+  } else if (message.includes('No time entries found')) {
+    message = 'לא נמצאו רשומות זמן בחודש הנוכחי.';
+  } else if (message.includes('Failed to fetch')) {
+    message = 'אין חיבור לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
+  }
+  
+  elements.errorMessage.textContent = message;
+  elements.errorCard.classList.remove('hidden');
+}
+
+function showResults() {
+  elements.loginCard.classList.add('hidden');
+  elements.errorCard.classList.add('hidden');
+  elements.loader.classList.add('hidden');
+  elements.resultsCard.classList.remove('hidden');
+  
+  // Set view to calendar by default
+  elements.tableView.classList.add('hidden');
+  elements.calendarView.classList.remove('hidden');
+  elements.toggleViewButton.innerHTML = '<i class="fas fa-table"></i> מעבר לתצוגת טבלה';
+  currentView = 'calendar';
+  
+  // Generate calendar view
+  if (allMonthEntries && allMonthEntries.length > 0) {
+    generateCalendarView();
+  }
+}
+
+function resetForm() {
+  elements.errorCard.classList.add('hidden');
+  elements.resultsCard.classList.add('hidden');
+  elements.loader.classList.add('hidden');
+  elements.loginCard.classList.remove('hidden');
+}
+
+// Data retrieval
+async function fetchHilanData(credentials) {
+  try {
+    showLoading();
+    
+    // Always use Hebrew interface
+    credentials.isEn = false;
+    
+    // Send login credentials to our server
+    const response = await fetch('/api/hilan-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
     });
     
-    // Add total row - removed totalDuration reference
-    csvContent += `"סה״כ",,"${elements.totalFormatted.textContent}",""\n`;
+    const data = await response.json();
     
-    // Create and trigger download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'שעות_חילן.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-  
-  // UI state management functions
-  function showLoading() {
-    elements.loginCard.classList.add('hidden');
-    elements.resultsCard.classList.add('hidden');
-    elements.errorCard.classList.add('hidden');
-    elements.loader.classList.remove('hidden');
-  }
-  
-  function showError(message) {
-    elements.loginCard.classList.add('hidden');
-    elements.resultsCard.classList.add('hidden');
-    elements.loader.classList.add('hidden');
-    
-    // Translate common error messages to Hebrew
-    if (message.includes('Login failed')) {
-      message = 'ההתחברות נכשלה. אנא בדוק את פרטי ההתחברות שלך.';
-    } else if (message.includes('No time entries found')) {
-      message = 'לא נמצאו רשומות זמן בחודש הנוכחי.';
-    } else if (message.includes('Failed to fetch')) {
-      message = 'אין חיבור לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'נכשל לקבל נתונים מחילן');
     }
     
-    elements.errorMessage.textContent = message;
-    elements.errorCard.classList.remove('hidden');
-  }
-  
-  function showResults() {
-    elements.loginCard.classList.add('hidden');
-    elements.errorCard.classList.add('hidden');
-    elements.loader.classList.add('hidden');
-    elements.resultsCard.classList.remove('hidden');
+    // Process and display the data
+    displayWorkHours(data.data);
+    showResults();
     
-    // Set view to calendar by default
-    elements.tableView.classList.add('hidden');
-    elements.calendarView.classList.remove('hidden');
-    elements.toggleViewButton.innerHTML = '<i class="fas fa-table"></i> מעבר לתצוגת טבלה';
-    currentView = 'calendar';
-    
-    // Generate calendar view
-    if (allMonthEntries && allMonthEntries.length > 0) {
-      generateCalendarView();
-    }
+  } catch (error) {
+    console.error('Error:', error);
+    showError(error.message || 'אירעה שגיאה לא ידועה');
   }
-  
-  function resetForm() {
-    elements.errorCard.classList.add('hidden');
-    elements.resultsCard.classList.add('hidden');
-    elements.loader.classList.add('hidden');
-    elements.loginCard.classList.remove('hidden');
-  }
-  
-  // Data retrieval
-  async function fetchHilanData(credentials) {
-    try {
-      showLoading();
-      
-      // Always use Hebrew interface
-      credentials.isEn = false;
-      
-      // Send login credentials to our server
-      const response = await fetch('/api/hilan-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials)
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'נכשל לקבל נתונים מחילן');
-      }
-      
-      // Process and display the data
-      displayWorkHours(data.data);
-      showResults();
-      
-    } catch (error) {
-      console.error('Error:', error);
-      showError(error.message || 'אירעה שגיאה לא ידועה');
-    }
-  }
+}
   
   // Function to print results
   function printResults() {
