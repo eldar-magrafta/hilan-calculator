@@ -882,3 +882,110 @@ tr.holiday-day-row td:first-child {
   background-color: var(--holiday-color);
   color: white;
 }
+
+/* Add these styles to your styles.css file to prevent layout jumping */
+
+/* Set a consistent min-height for calendar days to prevent jumping */
+.calendar-day {
+  min-height: 120px;
+  padding: 0.5rem;
+  padding-top: 35px;
+  padding-bottom: 35px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Create a placeholder for the vacation badge to maintain consistent spacing */
+.calendar-day::before {
+  content: '';
+  display: block;
+  height: 22px; /* Approximate height of the badge */
+  visibility: hidden;
+  margin-bottom: 0.25rem;
+}
+
+/* Make the vacation badge use absolute positioning so it doesn't affect layout flow */
+.vacation-badge, .holiday-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2;
+}
+
+/* Adjust the day hours container to maintain consistent height */
+.day-hours {
+  margin-top: 0.5rem;
+  margin-bottom: auto;
+  min-height: 1.75rem; /* Set a minimum height based on the content size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Make sure the holiday name has a consistent height */
+.holiday-name {
+  min-height: 1.5rem;
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure the day type area has consistent height */
+.day-type {
+  margin-top: 0.5rem;
+  min-height: 2.5rem; /* Approximate height of the select element */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make day actions container fixed height to prevent jumping */
+.day-actions {
+  position: absolute;
+  width: 100%;
+  height: 26px; /* Set height based on the buttons */
+  bottom: 5px;
+  left: 0;
+  padding: 0 0.5rem;
+  display: flex;
+  justify-content: space-around;
+}
+
+/* Table rows also need consistent height */
+#hours-table tbody tr {
+  height: 60px; /* Approximate height for each row */
+}
+
+/* Ensure day type select element has consistent sizing */
+.day-type-select, 
+.day-type-select-calendar {
+  width: 100%;
+  height: 34px; /* Standard height for select elements */
+}
+
+/* For the calendar day action buttons, maintain consistent width */
+.action-btn {
+  flex: 1;
+  max-width: 48%;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure calendar vacation/holiday states don't affect overall dimensions */
+.calendar-day.vacation-day,
+.calendar-day.holiday-day,
+.calendar-day.weekend {
+  min-height: 120px; /* Same as the base calendar-day */
+  box-sizing: border-box;
+}
+
+/* Use transform instead of margin/padding changes for hover effects */
+.action-btn:hover,
+.vacation-btn:hover,
+.workday-btn:hover {
+  transform: translateY(-2px);
+  margin-bottom: 0; /* Override any margin that might cause jumping */
+}

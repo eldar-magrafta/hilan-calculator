@@ -6,16 +6,10 @@
     <title>מחשבון שעות חילן</title>
     <link rel="icon" href="time.png" type="image/png" />
     <link rel="stylesheet" href="styles.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap"
-      rel="stylesheet"
-    />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div class="container">
@@ -32,13 +26,7 @@
           <form id="login-form">
             <div class="form-group">
               <label for="orgId">מספר ארגון</label>
-              <input
-                type="text"
-                id="orgId"
-                name="orgId"
-                value="3023"
-                required
-              />
+              <input type="text" id="orgId" name="orgId" value="3023" required />
             </div>
             <div class="form-group">
               <label for="username">מספר עובד</label>
@@ -46,13 +34,7 @@
             </div>
             <div class="form-group">
               <label for="password">סיסמה</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                required
-                autocomplete="off"
-              />
+              <input type="password" id="password" name="password" required autocomplete="off" />
             </div>
             <button type="submit" class="btn primary-btn">
               <i class="fas fa-sign-in-alt"></i> התחברות
@@ -69,7 +51,6 @@
 
       <!-- Results Card -->
       <div class="card hidden" id="results-card">
-        <!-- Header -->
         <div class="card-header">
           <h2><i class="fas fa-chart-bar"></i> סיכום שעות עבודה</h2>
           <div class="card-actions">
@@ -85,27 +66,21 @@
           <!-- Primary Metrics -->
           <div class="summary-area">
             <div class="summary-card">
-              <div class="summary-icon">
-                <i class="fas fa-briefcase"></i>
-              </div>
+              <div class="summary-icon"><i class="fas fa-briefcase"></i></div>
               <div class="summary-details">
                 <span class="summary-title">ימי עבודה בחודש זה</span>
                 <span class="summary-value" id="regular-workdays">0</span>
               </div>
             </div>
             <div class="summary-card" id="required-hours-card">
-              <div class="summary-icon">
-                <i class="fas fa-business-time"></i>
-              </div>
+              <div class="summary-icon"><i class="fas fa-business-time"></i></div>
               <div class="summary-details">
                 <span class="summary-title">שעות עבודה בחודש זה</span>
                 <span class="summary-value" id="monthly-requirement">0</span>
               </div>
             </div>
             <div class="summary-card">
-              <div class="summary-icon">
-                <i class="fas fa-clock"></i>
-              </div>
+              <div class="summary-icon"><i class="fas fa-clock"></i></div>
               <div class="summary-details">
                 <span class="summary-title">סה"כ שעות שבוצעו החודש</span>
                 <span class="summary-value" id="total-hours">0</span>
@@ -116,34 +91,24 @@
           <!-- Secondary Metrics -->
           <div class="summary-area monthly-requirement">
             <div class="summary-card">
-              <div class="summary-icon">
-                <i class="fas fa-calculator"></i>
-              </div>
+              <div class="summary-icon"><i class="fas fa-calculator"></i></div>
               <div class="summary-details">
                 <span class="summary-title">ממוצע שעות יומי</span>
                 <span class="summary-value" id="daily-average">0</span>
               </div>
             </div>
             <div class="summary-card" id="remaining-hours-card">
-              <div class="summary-icon">
-                <i class="fas fa-hourglass-half"></i>
-              </div>
+              <div class="summary-icon"><i class="fas fa-hourglass-half"></i></div>
               <div class="summary-details">
                 <span class="summary-title">שעות שנותרו לביצוע</span>
                 <span class="summary-value" id="remaining-hours">0</span>
               </div>
             </div>
             <div class="summary-card" id="daily-required-hours-card">
-              <div class="summary-icon">
-                <i class="fas fa-calendar-check"></i>
-              </div>
+              <div class="summary-icon"><i class="fas fa-calendar-check"></i></div>
               <div class="summary-details">
-                <span class="summary-title"
-                  >שעות שנותרו בכל יום</span
-                >
-                <span class="summary-value" id="daily-required-hours"
-                  >0:00</span
-                >
+                <span class="summary-title">שעות שנותרו בכל יום</span>
+                <span class="summary-value" id="daily-required-hours">0:00</span>
               </div>
             </div>
           </div>
@@ -169,9 +134,7 @@
               <div>שישי</div>
               <div>שבת</div>
             </div>
-            <div class="calendar-grid" id="calendar-grid">
-              <!-- Calendar days will be inserted here dynamically -->
-            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
           </div>
 
           <!-- Table View -->
@@ -186,9 +149,7 @@
                   <th>סוג</th>
                 </tr>
               </thead>
-              <tbody id="hours-table-body">
-                <!-- Table rows will be inserted here dynamically -->
-              </tbody>
+              <tbody id="hours-table-body"></tbody>
               <tfoot>
                 <tr id="total-row" class="total-row">
                   <td colspan="5" class="total-cell">
@@ -217,9 +178,7 @@
 
       <footer>
         <p>&copy; 2025 מחשבון שעות חילן | Developed by Eldar M</p>
-        <p class="note">
-          פרטי ההתחברות שלך נשלחים רק לשרתי חילן ולעולם לא נשמרים.
-        </p>
+        <p class="note">פרטי ההתחברות שלך נשלחים רק לשרתי חילן ולעולם לא נשמרים.</p>
       </footer>
     </div>
 
