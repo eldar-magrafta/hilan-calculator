@@ -36,7 +36,7 @@ const elements = {
   // Status cards
   requiredHoursCard: document.getElementById('required-hours-card'),
   remainingHoursCard: document.getElementById('remaining-hours-card'),
-  completionCard: document.getElementById('completion-card')
+  dailyRequiredHoursCard: document.getElementById('daily-required-hours-card')
 };
 
 // Global variables
@@ -102,14 +102,14 @@ function formatDateString(day, month, year) {
   return `${day}/${month}/${year}`;
 }
 
-function getCategoryForDay(date, dayName, isHoliday) {
+function getCategoryForDay(date, dayName, isHoliday, holidayName) {
   // If explicitly set as vacation, return vacation
   if (workingDayTypes[date] === DAY_TYPES.VACATION) {
     return DAY_TYPES.VACATION;
   }
   
   // If it's a weekend or holiday, return vacation
-  if (isWeekend(dayName) || isHoliday) {
+  if (isWeekend(dayName) || isHoliday || holidayName) {
     return DAY_TYPES.VACATION;
   }
   
@@ -122,6 +122,13 @@ function createVacationBadge() {
   const badge = document.createElement('span');
   badge.className = 'vacation-badge';
   badge.textContent = 'חופשה';
+  return badge;
+}
+
+function createHolidayBadge(holidayName) {
+  const badge = document.createElement('span');
+  badge.className = 'vacation-badge holiday-badge';
+  badge.textContent = holidayName || 'חג';
   return badge;
 }
 
@@ -249,7 +256,7 @@ function updateCalendarDayType(date, type) {
     calendarDay.classList.remove('vacation-day');
     
     // Always remove the badge if changing back to regular workday
-    const badge = calendarDay.querySelector('.vacation-badge');
+    const badge = calendarDay.querySelector('.vacation-badge:not(.holiday-badge)');
     if (badge) {
       calendarDay.removeChild(badge);
     }
@@ -290,7 +297,8 @@ function recalculateRequiredHours() {
   const completedDays = getCompletedDaysCount();
   
   allMonthEntries.forEach(entry => {
-    const dayType = workingDayTypes[entry.date] || DAY_TYPES.REGULAR;
+    const dayType = workingDayTypes[entry.date] || 
+                   (isWeekend(entry.day) || entry.isHoliday ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
     
     if (dayType === DAY_TYPES.REGULAR) {
       const [day, month, year] = parseDate(entry.date);
@@ -423,7 +431,7 @@ function updateRemainingHoursCard(remainingRequiredMinutes) {
     elements.remainingHoursCard.classList.add(STATUS_CLASSES.COMPLETED);
   } else if (hoursRemaining >= 5 && hoursRemaining < 10) {
     elements.remainingHoursCard.classList.add(STATUS_CLASSES.NEARLY_COMPLETED);
-  } else {
+  } else if (hoursRemaining >= 10) {
     elements.remainingHoursCard.classList.add(STATUS_CLASSES.PENDING);
   }
 }
@@ -487,9 +495,13 @@ function createCalendarDay(dayOfMonth, month, year, entriesByDay, currentDate) {
   
   const entry = entriesByDay[dayOfMonth];
   
+  // Check for holiday
+  const isHoliday = entry && entry.isHoliday;
+  const holidayName = entry && entry.holidayName;
+  
   // Determine day type based on various factors
   const dayType = workingDayTypes[dateString] || 
-                (isWeekendDay || (entry && entry.isHoliday) ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
+                (isWeekendDay || isHoliday ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
   
   // Store the day type
   workingDayTypes[dateString] = dayType;
@@ -505,8 +517,12 @@ function createCalendarDay(dayOfMonth, month, year, entriesByDay, currentDate) {
   dayNumber.textContent = dayOfMonth;
   dayCell.appendChild(dayNumber);
   
-  // Add vacation badge ONLY to non-weekend vacation days
-  if (dayType === DAY_TYPES.VACATION && !isWeekendDay) {
+  // Add holiday badge if applicable
+  if (holidayName) {
+    dayCell.appendChild(createHolidayBadge(holidayName));
+  }
+  // Add vacation badge ONLY to non-weekend vacation days with no holiday name
+  else if (dayType === DAY_TYPES.VACATION && !isWeekendDay && !holidayName) {
     dayCell.appendChild(createVacationBadge());
   }
   
@@ -518,8 +534,8 @@ function createCalendarDay(dayOfMonth, month, year, entriesByDay, currentDate) {
     dayCell.appendChild(dayHours);
   }
   
-  // Add holiday name if present
-  if (entry && entry.holidayName) {
+  // Add holiday name if present and not already added as a badge
+  if (entry && entry.holidayName && !dayCell.querySelector('.holiday-badge')) {
     const holidayNameEl = document.createElement('div');
     holidayNameEl.className = 'holiday-name';
     holidayNameEl.textContent = entry.holidayName;
@@ -531,7 +547,7 @@ function createCalendarDay(dayOfMonth, month, year, entriesByDay, currentDate) {
   spacer.style.flexGrow = '1';
   dayCell.appendChild(spacer);
   
-  // Add action buttons for non-weekend days
+  // Add action buttons for non-weekend days, including holidays
   if (!isWeekendDay) {
     addDayActionButtons(dayCell, dateString);
   }
@@ -542,6 +558,9 @@ function createCalendarDay(dayOfMonth, month, year, entriesByDay, currentDate) {
 function addDayActionButtons(dayCell, dateString) {
   const dayActions = document.createElement('div');
   dayActions.className = 'day-actions';
+  
+  // Get the current day type
+  const currentDayType = workingDayTypes[dateString];
   
   // Vacation button - show only for regular workdays
   const vacationBtn = document.createElement('button');
@@ -642,7 +661,7 @@ function createTableRow(entry, currentDate) {
     // Ensure working day type is set to vacation for weekends
     workingDayTypes[entry.date] = DAY_TYPES.VACATION;
   } else {
-    // Regular dropdown for non-weekend days
+    // Regular dropdown for non-weekend days, including holidays
     dayTypeHTML = `
       <select class="day-type-select" data-date="${entry.date}">
         <option value="${DAY_TYPES.REGULAR}" ${workingDayTypes[entry.date] === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
@@ -711,7 +730,7 @@ function updateSummaryInfo(result) {
 function countRegularWorkdays() {
   let count = 0;
   allMonthEntries.forEach(entry => {
-    if (!isWeekend(entry.day) && !entry.isHoliday && 
+    if (!isWeekend(entry.day) && !entry.isHoliday && !entry.holidayName && 
         workingDayTypes[entry.date] === DAY_TYPES.REGULAR) {
       count++;
     }

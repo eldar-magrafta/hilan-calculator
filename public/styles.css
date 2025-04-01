@@ -832,3 +832,53 @@ tfoot tr {
     font-size: 0.6rem;
   }
 }
+
+/* Add these styles to your existing CSS */
+
+/* Holiday badge specific styles */
+.holiday-badge {
+  background-color: var(--holiday-color);
+  color: white;
+  font-weight: bold;
+}
+
+/* Holiday name styling */
+.holiday-name {
+  font-size: 0.7rem;
+  color: var(--holiday-color);
+  text-align: center;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  padding: 0.2rem;
+  border-radius: 0.25rem;
+  background-color: rgba(235, 104, 17, 0.1);
+}
+
+/* Special days row styling */
+tr.holiday-day-row {
+  background-color: rgba(235, 104, 17, 0.15);
+}
+
+tr.holiday-day-row:hover {
+  background-color: rgba(235, 104, 17, 0.25);
+}
+
+tr.holiday-day-row td:first-child {
+  border-right: 4px solid var(--holiday-color);
+}
+
+/* Calendar day with holiday styling */
+.calendar-day.holiday-day {
+  background-color: rgba(235, 104, 17, 0.15);
+}
+
+.calendar-day.holiday-day:hover {
+  background-color: rgba(235, 104, 17, 0.25);
+}
+
+/* Holiday badge position */
+.vacation-badge.holiday-badge {
+  background-color: var(--holiday-color);
+  color: white;
+}

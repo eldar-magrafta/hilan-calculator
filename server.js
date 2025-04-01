@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 // Constants
 const EPOCH_DATE = new Date(2000, 0, 1); // Reference date for Hilan system: January 1, 2000
 const MINUTES_PER_WORKDAY = 9 * 60; // 9 hours in minutes
+const MINUTES_PER_THURSDAY = 8.5 * 60; // 8.5 hours in minutes for Thursday
 const MONTH_NAMES = {
   'ינואר': 1, 'פברואר': 2, 'מרץ': 3, 'אפריל': 4, 'מאי': 5, 'יוני': 6,
   'יולי': 7, 'אוגוסט': 8, 'ספטמבר': 9, 'אוקטובר': 10, 'נובמבר': 11, 'דצמבר': 12,
@@ -32,7 +33,40 @@ function extractWorkHours(htmlContent) {
   // Extract month and year information
   const { month, year } = extractMonthYear(htmlContent);
   
-  // Extract day cells with time records using regex
+  // First, try to extract days with holiday information using the calendarCpecialDay class
+  const specialDaysPattern = /<td\s+title="([^"]+)"\s+class="calendarCpecialDay"[^>]*Days="(\d+)"[^>]*>.*?<td\s+class="dTS">(\d+)<\/td>.*?<td\s+class="cDM"[^>]*>([^<]*)<\/td>/gs;
+  
+  let specialMatch;
+  while ((specialMatch = specialDaysPattern.exec(htmlContent)) !== null) {
+    const holidayTitle = specialMatch[1].trim(); // From title attribute
+    const offsetFromEpoch = parseInt(specialMatch[2]);
+    const displayDay = parseInt(specialMatch[3]);
+    const holidayText = specialMatch[4].trim(); // From cDM cell content
+    
+    // Calculate exact date based on Days attribute
+    const exactDate = new Date(EPOCH_DATE);
+    exactDate.setDate(EPOCH_DATE.getDate() + offsetFromEpoch);
+    
+    // Extract date components
+    const day = exactDate.getDate();
+    const calculatedMonth = exactDate.getMonth() + 1;
+    const calculatedYear = exactDate.getFullYear();
+    
+    // Get day of week
+    const dayOfWeek = WEEKDAYS[exactDate.getDay()];
+    
+    // Add the special day entry
+    timeEntries.push({
+      date: `${day}/${calculatedMonth}/${calculatedYear}`,
+      day: dayOfWeek,
+      time: '---',
+      offsetFromEpoch: offsetFromEpoch,
+      holidayName: holidayText || holidayTitle, // Use either the text in the cell or the title attribute
+      isHoliday: true
+    });
+  }
+  
+  // Now extract regular days
   const dayCellPattern = /<td[^>]*class="cDIES[^"]*"[^>]*Days="(\d+)"[^>]*>.*?<td class="dTS">(\d+)<\/td>.*?<td class="cDM"[^>]*>([^<]*)<\/td>/gs;
   
   let match;
@@ -40,6 +74,11 @@ function extractWorkHours(htmlContent) {
     const offsetFromEpoch = parseInt(match[1]); 
     const displayDay = parseInt(match[2]); 
     const dayTypeText = match[3].trim(); 
+
+    // Skip this entry if we've already added it as a special day
+    if (timeEntries.some(entry => entry.offsetFromEpoch === offsetFromEpoch)) {
+      continue;
+    }
 
     // Check if it's a regular workday or holiday
     let isOrdinaryWeekday = dayTypeText === '&nbsp;' || dayTypeText === '' || /^\d+:\d+$/.test(dayTypeText);
@@ -73,7 +112,7 @@ function extractWorkHours(htmlContent) {
     });
   }
   
-  // Try fallback methods if primary method fails
+  // Try fallback methods if primary methods fail
   if (timeEntries.length === 0) {
     console.log("Primary method failed, trying fallback method 1...");
     return parseWorkHoursFallback1(htmlContent, EPOCH_DATE);
@@ -221,10 +260,16 @@ function calculateMonthlyRequirement(timeEntries) {
   
   let totalRequiredMinutes = 0;
   
-  // Count non-weekend days
+  // Count regular workdays (excluding weekends and holidays)
   timeEntries.forEach(entry => {
-    if (entry.day !== 'Friday' && entry.day !== 'Saturday') {
-      totalRequiredMinutes += MINUTES_PER_WORKDAY;
+    // Skip weekends (Friday, Saturday) and holidays
+    if ((entry.day !== 'Friday' && entry.day !== 'Saturday') && !entry.isHoliday) {
+      // Thursday has 8.5 hours instead of 9
+      if (entry.day === 'Thursday') {
+        totalRequiredMinutes += MINUTES_PER_THURSDAY;
+      } else {
+        totalRequiredMinutes += MINUTES_PER_WORKDAY;
+      }
     }
   });
   
@@ -312,6 +357,36 @@ function calculateTotalTime(timeEntries) {
  */
 function parseWorkHoursFallback1(htmlContent, epochDate) {
   const timeEntries = [];
+  
+  // First try to extract special days
+  const specialDaysPattern = /<td\s+title="([^"]+)"\s+class="calendarCpecialDay"[^>]*Days="(\d+)"[^>]*>.*?<td\s+class="dTS">(\d+)<\/td>.*?<td\s+class="cDM"[^>]*>([^<]*)<\/td>/gs;
+  
+  let specialMatch;
+  while ((specialMatch = specialDaysPattern.exec(htmlContent)) !== null) {
+    const holidayTitle = specialMatch[1].trim();
+    const offsetFromEpoch = parseInt(specialMatch[2]);
+    const displayDay = parseInt(specialMatch[3]);
+    const holidayText = specialMatch[4].trim();
+    
+    const exactDate = new Date(epochDate);
+    exactDate.setDate(epochDate.getDate() + offsetFromEpoch);
+    
+    const day = exactDate.getDate();
+    const calculatedMonth = exactDate.getMonth() + 1;
+    const calculatedYear = exactDate.getFullYear();
+    const dayOfWeek = WEEKDAYS[exactDate.getDay()];
+    
+    timeEntries.push({
+      date: `${day}/${calculatedMonth}/${calculatedYear}`,
+      day: dayOfWeek,
+      time: '---',
+      offsetFromEpoch: offsetFromEpoch,
+      holidayName: holidayText || holidayTitle,
+      isHoliday: true
+    });
+  }
+  
+  // Then extract regular days
   const dayRows = htmlContent.split('<tr>');
   
   dayRows.forEach(row => {
@@ -321,6 +396,12 @@ function parseWorkHoursFallback1(htmlContent, epochDate) {
     
     if (daysMatch && dayMatch && dayTypeMatch) {
       const offsetFromEpoch = parseInt(daysMatch[1]);
+      
+      // Skip if already added as a special day
+      if (timeEntries.some(entry => entry.offsetFromEpoch === offsetFromEpoch)) {
+        return;
+      }
+      
       const displayDay = parseInt(dayMatch[1]);
       const dayTypeText = dayTypeMatch[1].trim();
 
@@ -368,6 +449,29 @@ function parseWorkHoursFallback1(htmlContent, epochDate) {
  */
 function parseWorkHoursFallback2(htmlContent, month, year, epochDate) {
   const timeEntries = [];
+  
+  // First try to extract special days (holidays)
+  const specialDaysPattern = /<td\s+title="([^"]+)"\s+class="calendarCpecialDay"[^>]*>.*?<td\s+class="dTS">(\d+)<\/td>.*?<td\s+class="cDM"[^>]*>([^<]*)<\/td>/gs;
+  
+  let specialMatch;
+  while ((specialMatch = specialDaysPattern.exec(htmlContent)) !== null) {
+    const holidayTitle = specialMatch[1].trim();
+    const displayDay = parseInt(specialMatch[2]);
+    const holidayText = specialMatch[3].trim();
+    
+    const date = new Date(year, month - 1, displayDay);
+    const dayOfWeek = WEEKDAYS[date.getDay()];
+    
+    timeEntries.push({
+      date: `${displayDay}/${month}/${year}`,
+      day: dayOfWeek,
+      time: '---',
+      holidayName: holidayText || holidayTitle,
+      isHoliday: true
+    });
+  }
+  
+  // Then extract regular days
   const dayRows = htmlContent.split('<tr>');
   
   dayRows.forEach(row => {
@@ -377,6 +481,15 @@ function parseWorkHoursFallback2(htmlContent, month, year, epochDate) {
       
       if (dayMatch && dayTypeMatch) {
         const day = parseInt(dayMatch[1]);
+        
+        // Skip if already added as a special day
+        if (timeEntries.some(entry => {
+          const [entryDay] = entry.date.split('/').map(Number);
+          return entryDay === day;
+        })) {
+          return;
+        }
+        
         const dayTypeText = dayTypeMatch[1].trim();
 
         // Check if regular workday
