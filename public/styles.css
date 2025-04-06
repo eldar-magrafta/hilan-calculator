@@ -252,6 +252,9 @@ input:focus {
 
 /* Action button */
 .action-btn {
+  height: 26px; /* Fixed height to prevent layout shifts */
+  flex: 1;
+  max-width: 48%;
   padding: 0.25rem 0.4rem;
   font-size: 0.7rem;
   border-radius: 0.25rem;
@@ -262,8 +265,6 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  max-width: 48%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -540,9 +541,21 @@ tfoot tr {
   border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease; /* Only transition background-color, not layout properties */
   position: relative;
   background-color: white;
+  box-sizing: border-box;
+}
+
+/* Create a placeholder for the badge to maintain consistent layout */
+.calendar-day::before {
+  content: '';
+  display: block;
+  height: 22px; /* Match badge height */
+  visibility: hidden;
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
 }
 
 .calendar-day:hover {
@@ -651,10 +664,14 @@ tfoot tr {
   padding: 0.25rem;
   border-radius: var(--radius);
   background-color: rgba(var(--primary-color-rgb), 0.05);
+  min-height: 1.75rem; /* Set consistent height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Day Elements */
-.vacation-badge {
+.vacation-badge, .holiday-badge {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
@@ -665,6 +682,14 @@ tfoot tr {
   font-size: 0.7rem;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 22px; /* Fixed height */
+  z-index: 2;
+  transition: opacity 0.2s ease; /* Transition opacity, not layout */
+}
+
+.holiday-badge {
+  background-color: var(--holiday-color);
+  color: white;
 }
 
 .holiday-name {
@@ -677,27 +702,41 @@ tfoot tr {
   padding: 0.2rem;
   border-radius: 0.25rem;
   background-color: rgba(255, 209, 102, 0.1);
+  min-height: 1.5rem; /* Fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .day-type {
   font-size: 0.8rem;
   color: var(--secondary-color);
   margin-top: 0.25rem;
+  min-height: 2.5rem; /* Consistent height */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Day Actions */
 .day-actions {
   position: absolute;
   width: 100%;
-  display: flex;
-  justify-content: space-around;
+  height: 26px; /* Fixed height based on the buttons */
   bottom: 5px;
   left: 0;
   padding: 0 0.5rem;
+  display: flex;
+  justify-content: space-around;
   opacity: 0;
   transform: translateY(10px);
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   z-index: 2;
+  pointer-events: none; /* Make the container itself not block clicks */
+}
+
+/* Make the action buttons capture pointer events */
+.day-actions .action-btn {
+  pointer-events: auto;
 }
 
 .calendar-day:not(.weekend):hover .day-actions {
@@ -773,6 +812,7 @@ tfoot tr {
   background-color: white;
   cursor: pointer;
   transition: all 0.2s ease;
+  height: 34px; /* Standard height for select elements */
 }
 
 .day-type-select:focus {
@@ -833,26 +873,11 @@ tfoot tr {
   }
 }
 
-/* Add these styles to your existing CSS */
-
 /* Holiday badge specific styles */
 .holiday-badge {
   background-color: var(--holiday-color);
   color: white;
   font-weight: bold;
-}
-
-/* Holiday name styling */
-.holiday-name {
-  font-size: 0.7rem;
-  color: var(--holiday-color);
-  text-align: center;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  padding: 0.2rem;
-  border-radius: 0.25rem;
-  background-color: rgba(235, 104, 17, 0.1);
 }
 
 /* Special days row styling */
@@ -877,101 +902,19 @@ tr.holiday-day-row td:first-child {
   background-color: rgba(235, 104, 17, 0.25);
 }
 
-/* Holiday badge position */
-.vacation-badge.holiday-badge {
-  background-color: var(--holiday-color);
-  color: white;
-}
-
-/* Add these styles to your styles.css file to prevent layout jumping */
-
-/* Set a consistent min-height for calendar days to prevent jumping */
-.calendar-day {
-  min-height: 120px;
-  padding: 0.5rem;
-  padding-top: 35px;
-  padding-bottom: 35px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Create a placeholder for the vacation badge to maintain consistent spacing */
-.calendar-day::before {
-  content: '';
-  display: block;
-  height: 22px; /* Approximate height of the badge */
-  visibility: hidden;
-  margin-bottom: 0.25rem;
-}
-
-/* Make the vacation badge use absolute positioning so it doesn't affect layout flow */
-.vacation-badge, .holiday-badge {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 2;
-}
-
-/* Adjust the day hours container to maintain consistent height */
-.day-hours {
-  margin-top: 0.5rem;
-  margin-bottom: auto;
-  min-height: 1.75rem; /* Set a minimum height based on the content size */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Make sure the holiday name has a consistent height */
-.holiday-name {
-  min-height: 1.5rem;
-  margin: 0.5rem 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Ensure the day type area has consistent height */
-.day-type {
-  margin-top: 0.5rem;
-  min-height: 2.5rem; /* Approximate height of the select element */
-  display: flex;
-  flex-direction: column;
-}
-
 /* Make day actions container fixed height to prevent jumping */
 .day-actions {
   position: absolute;
   width: 100%;
-  height: 26px; /* Set height based on the buttons */
+  height: 26px; /* Fixed height based on the buttons */
   bottom: 5px;
   left: 0;
   padding: 0 0.5rem;
-  display: flex;
-  justify-content: space-around;
 }
 
-/* Table rows also need consistent height */
+/* Table rows need consistent height */
 #hours-table tbody tr {
   height: 60px; /* Approximate height for each row */
-}
-
-/* Ensure day type select element has consistent sizing */
-.day-type-select, 
-.day-type-select-calendar {
-  width: 100%;
-  height: 34px; /* Standard height for select elements */
-}
-
-/* For the calendar day action buttons, maintain consistent width */
-.action-btn {
-  flex: 1;
-  max-width: 48%;
-  min-height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Ensure calendar vacation/holiday states don't affect overall dimensions */

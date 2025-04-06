@@ -101,6 +101,14 @@ function createVacationBadge() {
   const badge = document.createElement('span');
   badge.className = 'vacation-badge';
   badge.textContent = 'חופשה';
+  // Apply initial style for a smooth transition
+  badge.style.opacity = '0';
+  
+  // Force a reflow before transitioning to make the transition work
+  setTimeout(() => {
+    badge.style.opacity = '1';
+  }, 10);
+  
   return badge;
 }
 
@@ -192,10 +200,18 @@ function syncTableView() {
 }
 
 function handleDayTypeChange(date, type) {
+  // Store the current type before changing it
+  const previousType = workingDayTypes[date];
+  
+  // Update the type in our data store
   workingDayTypes[date] = type;
-  recalculateRequiredHours();
-  updateCalendarDayType(date, type);
-  updateTableDayType(date, type);
+  
+  // Use setTimeout to delay the DOM updates until after the click event is fully processed
+  setTimeout(() => {
+    recalculateRequiredHours();
+    updateCalendarDayType(date, type);
+    updateTableDayType(date, type);
+  }, 10);
 }
 
 function updateCalendarDayType(date, type) {
@@ -207,18 +223,26 @@ function updateCalendarDayType(date, type) {
   const dayOfWeek = dayDate.getDay();
   const isWeekendDay = isDayOfWeekWeekend(dayOfWeek);
   
+  // First check if we already have a vacation badge (not holiday badge)
+  const existingBadge = calendarDay.querySelector('.vacation-badge:not(.holiday-badge)');
+  
   if (type === DAY_TYPES.VACATION) {
+    // Add vacation class
     calendarDay.classList.add('vacation-day');
     
-    if (!isWeekendDay && !calendarDay.querySelector('.vacation-badge')) {
-      calendarDay.insertBefore(createVacationBadge(), calendarDay.firstChild);
+    // Only add a badge if it's not a weekend and doesn't already have a vacation badge
+    if (!isWeekendDay && !existingBadge) {
+      const badge = createVacationBadge();
+      // Insert at the beginning
+      calendarDay.insertBefore(badge, calendarDay.firstChild);
     }
   } else {
+    // Remove vacation class
     calendarDay.classList.remove('vacation-day');
     
-    const badge = calendarDay.querySelector('.vacation-badge:not(.holiday-badge)');
-    if (badge) {
-      calendarDay.removeChild(badge);
+    // Remove vacation badge if it exists and is not a holiday badge
+    if (existingBadge) {
+      existingBadge.remove();
     }
   }
 }
@@ -388,7 +412,7 @@ function addDayActionButtons(dayCell, dateString) {
   
   const vacationBtn = document.createElement('button');
   vacationBtn.className = 'action-btn vacation-btn';
-  vacationBtn.innerHTML = '<i class="fas fa-umbrella-beach"></i> חופשה';
+  vacationBtn.innerHTML = '<i class="fas fa-umbrella-beach"></i> סמן כחופשה';
   vacationBtn.setAttribute('data-date', dateString);
   vacationBtn.addEventListener('click', function() {
     handleDayTypeChange(dateString, DAY_TYPES.VACATION);
@@ -396,7 +420,7 @@ function addDayActionButtons(dayCell, dateString) {
   
   const workdayBtn = document.createElement('button');
   workdayBtn.className = 'action-btn workday-btn';
-  workdayBtn.innerHTML = '<i class="fas fa-briefcase"></i> יום עבודה';
+  workdayBtn.innerHTML = '<i class="fas fa-briefcase"></i> סמן כיום עבודה';
   workdayBtn.setAttribute('data-date', dateString);
   workdayBtn.addEventListener('click', function() {
     handleDayTypeChange(dateString, DAY_TYPES.REGULAR);
