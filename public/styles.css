@@ -503,6 +503,7 @@ input:focus {
 .summary-icon i { 
   background: var(--text-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   font-size: 1.8rem;
 }
@@ -525,6 +526,7 @@ input:focus {
   font-weight: 700;
   background: linear-gradient(135deg, #20696c, #2a8d8f);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   font-family: 'Montserrat', sans-serif;
   letter-spacing: 0.5px;
@@ -1034,4 +1036,16 @@ tfoot tr {
     padding: 0.15rem 0.25rem;
     font-size: 0.6rem;
   }
+}
+
+#results-card .card-header {
+  padding: 0.6rem 1rem;
+  min-height: 50px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+#results-card .card-actions {
+  margin-left: auto;
 }
