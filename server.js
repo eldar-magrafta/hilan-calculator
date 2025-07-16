@@ -472,7 +472,7 @@ app.post('/api/hilan-data', async (req, res) => {
     if (timeEntries.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'לא נמצאו רשומות זמן בתגובה.'
+        error: 'לא נמצאו רשומות זמן בתגובה'
       });
     }
     
