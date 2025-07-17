@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 
 const app = express();
@@ -444,7 +443,7 @@ app.post('/api/hilan-data', async (req, res) => {
       });
     }
     
-    const cookies = loginResponse.headers.raw()['set-cookie'];
+    const cookies = loginResponse.headers.getSetCookie();
     
     if (!cookies || cookies.length === 0) {
       return res.status(500).json({
