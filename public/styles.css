@@ -21,6 +21,11 @@
   --future-day-color: #3a86ff;
   --holiday-color: #eb6811;
   
+  /* Missing Report Colors */
+  --missing-report-color: #dc2626;
+  --missing-report-bg: rgba(220, 38, 38, 0.1);
+  --missing-report-border: #fca5a5;
+  
   /* Opacity values */
   --opacity-low: 0.05;
   --opacity-medium: 0.1;
@@ -661,6 +666,32 @@ tfoot tr {
   border-right: 4px solid var(--holiday-color);
 }
 
+/* Missing Report Styles */
+.missing-report-row {
+  background-color: var(--missing-report-bg) !important;
+  border-left: 4px solid var(--missing-report-color) !important;
+}
+
+.missing-report-row:hover {
+  background-color: rgba(220, 38, 38, 0.15) !important;
+}
+
+.missing-report-row td:first-child {
+  border-right: 4px solid var(--missing-report-color) !important;
+}
+
+.missing-report-text {
+  color: var(--missing-report-color);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.missing-report-text i {
+  animation: pulse 2s infinite;
+}
+
 /* Calendar */
 .calendar-container { 
   padding: var(--space-md) 0; 
@@ -794,6 +825,16 @@ tfoot tr {
   background-color: rgba(235, 104, 17, 0.25);
 }
 
+.calendar-day.missing-report-day {
+  background-color: var(--missing-report-bg) !important;
+  border: 2px solid var(--missing-report-border) !important;
+}
+
+.calendar-day.missing-report-day:hover {
+  background-color: rgba(220, 38, 38, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2) !important;
+}
+
 .calendar-day.vacation-day,
 .calendar-day.holiday-day,
 .calendar-day.weekend {
@@ -847,6 +888,12 @@ tfoot tr {
   color: white;
 }
 
+.missing-report-day .day-number {
+  background-color: var(--missing-report-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+}
+
 .day-hours {
   margin-top: var(--space-sm);
   margin-bottom: auto;
@@ -889,6 +936,30 @@ tfoot tr {
   background-color: var(--holiday-color);
   color: white;
   font-weight: bold;
+}
+
+.missing-report-alert {
+  position: absolute;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  background-color: var(--missing-report-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: var(--badge-height);
+  z-index: 2;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  animation: pulse 2s infinite;
+}
+
+.missing-report-alert i {
+  font-size: var(--font-xs);
 }
 
 .holiday-name {
@@ -998,6 +1069,11 @@ tfoot tr {
 @keyframes shimmer {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Responsive Styles */

@@ -119,6 +119,13 @@ function createHolidayBadge(holidayName) {
   return badge;
 }
 
+function createMissingReportAlert() {
+  const alert = document.createElement('div');
+  alert.className = 'missing-report-alert';
+  alert.innerHTML = '<i class="fas fa-exclamation-triangle"></i> חסר דיווח';
+  return alert;
+}
+
 function updateElementClass(element, classesToRemove, classToAdd) {
   if (!element) return;
   
@@ -211,6 +218,15 @@ function handleDayTypeChange(date, type) {
     recalculateRequiredHours();
     updateCalendarDayType(date, type);
     updateTableDayType(date, type);
+    
+    // Refresh missing report alerts if needed
+    if (currentView === 'calendar') {
+      generateCalendarView();
+    } else {
+      // For table view, we need to regenerate the table to update missing report indicators
+      elements.hoursTableBody.innerHTML = '';
+      displayTableRows();
+    }
   }, 10);
 }
 
@@ -476,6 +492,17 @@ function createCalendarDay(dayOfMonth, month, year, entriesByDay, currentDate) {
     dayCell.appendChild(createVacationBadge());
   }
   
+  // Check for missing report alert
+  const shouldShowMissingAlert = isPastDay && 
+                                dayType === DAY_TYPES.REGULAR && 
+                                !isHoliday && 
+                                (!entry || !entry.time || entry.time === '---' || !isValidTimeFormat(entry.time));
+  
+  if (shouldShowMissingAlert) {
+    dayCell.classList.add('missing-report-day');
+    dayCell.appendChild(createMissingReportAlert());
+  }
+  
   if (entry && entry.time && isValidTimeFormat(entry.time)) {
     const dayHours = document.createElement('div');
     dayHours.className = 'day-hours';
@@ -550,7 +577,18 @@ function createTableRow(entry, currentDate) {
   let timeDisplay = entry.time;
   let hebrewHoursMinutes = '---';
   
-  if (isValidTimeFormat(entry.time)) {
+  const dayType = workingDayTypes[entry.date] || 
+                 (isEntryWeekend || entry.isHoliday ? DAY_TYPES.VACATION : DAY_TYPES.REGULAR);
+  
+  // Check for missing report
+  const shouldShowMissingAlert = isPastDay && 
+                                dayType === DAY_TYPES.REGULAR && 
+                                !entry.isHoliday && 
+                                (!entry.time || entry.time === '---' || !isValidTimeFormat(entry.time));
+  
+  if (shouldShowMissingAlert) {
+    hebrewHoursMinutes = '<span class="missing-report-text"><i class="fas fa-exclamation-triangle"></i> חסר דיווח</span>';
+  } else if (isValidTimeFormat(entry.time)) {
     [hours, minutes] = entry.time.split(':').map(Number);
     hebrewHoursMinutes = formatHoursMinutes(hours, minutes);
   }
@@ -576,6 +614,7 @@ function createTableRow(entry, currentDate) {
   if (isPastDay) rowClasses.push('past-day-row');
   if (entryDate.toDateString() === currentDate.toDateString()) rowClasses.push('current-day-row');
   if (workingDayTypes[entry.date] === DAY_TYPES.VACATION || entry.isHoliday || entry.holidayName) rowClasses.push('vacation-day-row');
+  if (shouldShowMissingAlert) rowClasses.push('missing-report-row');
   
   row.className = rowClasses.join(' ');
   row.innerHTML = `
