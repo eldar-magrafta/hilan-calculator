@@ -105,28 +105,19 @@ function extractWorkHours(htmlContent) {
   
   console.log('🔍 Searching for time entries...');
   
-  // Try to find any table row that contains Days attribute and day number
-  const rowPattern = /<tr[^>]*>(.*?)<\/tr>/gs;
-  let rowMatch;
-  let processedDays = new Set();
+  // Find all calendar day cells by looking for the specific structure
+  const cellPattern = /<td[^>]*Days="(\d+)"[^>]*>[\s\S]*?<td class="dTS">(\d+)<\/td>[\s\S]*?<div class="cDM[^"]*"[^>]*>([^<]+)<\/div>/g;
+  let cellMatch;
+  const processedDays = new Set();
   
-  while ((rowMatch = rowPattern.exec(htmlContent)) !== null) {
-    const rowContent = rowMatch[1];
-    
-    // Look for Days attribute
-    const daysMatch = rowContent.match(/Days="(\d+)"/);
-    if (!daysMatch) continue;
-    
-    const offsetFromEpoch = parseInt(daysMatch[1]);
+  while ((cellMatch = cellPattern.exec(htmlContent)) !== null) {
+    const offsetFromEpoch = parseInt(cellMatch[1]);
+    const dayNumber = parseInt(cellMatch[2]);
+    const timeText = cellMatch[3].trim();
     
     // Skip if already processed
     if (processedDays.has(offsetFromEpoch)) continue;
-    
-    // Look for day number (dTS class)
-    const dayNumMatch = rowContent.match(/class="dTS">(\d+)<\/td>/);
-    if (!dayNumMatch) continue;
-    
-    const displayDay = parseInt(dayNumMatch[1]);
+    processedDays.add(offsetFromEpoch);
     
     // Calculate the actual date
     const exactDate = new Date(EPOCH_DATE);
@@ -137,51 +128,28 @@ function extractWorkHours(htmlContent) {
     const calculatedYear = exactDate.getFullYear();
     const dayOfWeek = WEEKDAYS[exactDate.getDay()];
     
-    // Look for time value - try multiple patterns
+    // Validate and extract time
     let timeValue = null;
-    const timePatterns = [
-      /class="cDM"[^>]*>([0-9:]+)</,
-      /class="[^"]*time[^"]*"[^>]*>([0-9:]+)</i,
-      />([0-9]+:[0-9]+)</,
-      /(\d{1,2}:\d{2})/
-    ];
-    
-    for (const pattern of timePatterns) {
-      const match = rowContent.match(pattern);
-      if (match && /^\d+:\d+$/.test(match[1])) {
-        timeValue = match[1];
-        break;
-      }
+    if (/^\d{1,2}:\d{2}$/.test(timeText)) {
+      timeValue = timeText;
     }
     
-    // Look for holiday/special day marker
-    const isSpecialDay = rowContent.includes('calendarCpecialDay');
-    const holidayMatch = rowContent.match(/title="([^"]+)"/);
-    const holidayName = isSpecialDay && holidayMatch ? holidayMatch[1] : null;
-    
+    // Check for weekends
     const isWeekend = exactDate.getDay() === 5 || exactDate.getDay() === 6;
-    const isHoliday = isSpecialDay || isWeekend;
     
-    console.log(`  📅 Found day ${day}/${calculatedMonth}: time="${timeValue || '---'}", weekday="${dayOfWeek}", holiday="${holidayName || 'none'}"`);
+    console.log(`  📅 Found day ${day}/${calculatedMonth}: time="${timeValue || timeText}", weekday="${dayOfWeek}"`);
     
     timeEntries.push({
       date: `${day}/${calculatedMonth}/${calculatedYear}`,
       day: dayOfWeek,
       time: timeValue || '---',
       offsetFromEpoch: offsetFromEpoch,
-      holidayName: holidayName,
-      isHoliday: isHoliday
+      holidayName: (timeText !== '&nbsp;' && !timeValue) ? timeText : null,
+      isHoliday: isWeekend || (timeText !== '&nbsp;' && !timeValue)
     });
-    
-    processedDays.add(offsetFromEpoch);
   }
   
   console.log('  Total entries found:', timeEntries.length);
-  
-  if (timeEntries.length === 0) {
-    console.log("Primary method failed, trying fallback methods...");
-    return parseWorkHoursFallback1(htmlContent, EPOCH_DATE);
-  }
   
   return sortTimeEntries(timeEntries);
 }
