@@ -396,6 +396,37 @@ input:focus {
   background: #2a8d8f;
 }
 
+/* Month Switcher */
+.month-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+  padding: var(--space-md) var(--space-lg) 0;
+}
+
+.month-switcher-btn {
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--primary-color);
+  background: rgba(var(--primary-color-rgb), 0.06);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.month-switcher-btn:hover {
+  background: rgba(var(--primary-color-rgb), 0.12);
+}
+
+.month-switcher-btn.active {
+  color: #fff;
+  background: #20696c;
+  border-color: #20696c;
+}
+
 /* Loader */
 .loader {
   display: flex;

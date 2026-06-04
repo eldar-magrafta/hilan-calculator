@@ -38,6 +38,9 @@ const HILAN_API = {
   ATTENDANCE: "https://motorola.net.hilan.co.il/Hilannetv2/Attendance/calendarpage.aspx?isPersonalFileMode=true&ReportPageMode=2"
 };
 
+// How many previous months to fetch in addition to the current month
+const PREVIOUS_MONTHS_TO_FETCH = 2;
+
 // ============================================================================
 // MIDDLEWARE SETUP
 // ============================================================================
@@ -471,6 +474,211 @@ async function fetchAttendancePage(cookieString) {
 }
 
 /**
+ * Extracts a hidden form field value from either a normal HTML page
+ * (GET response) or an ASP.NET async-postback delta (POST response).
+ * @param {string} content - HTML or async delta content
+ * @param {string} fieldName - The form field name (e.g. "__VIEWSTATE")
+ * @returns {string|null} The field value, or null if not found
+ */
+function extractHiddenField(content, fieldName) {
+  // Async postback delta format: |<len>|hiddenField|<name>|<value>|
+  const escapedName = fieldName.replace(/[.*+?^${}()|[\]\\$]/g, "\\$&");
+  const deltaMatch = content.match(
+    new RegExp(`\\|hiddenField\\|${escapedName}\\|([^|]*)\\|`)
+  );
+  if (deltaMatch) {
+    return deltaMatch[1];
+  }
+
+  // Standard HTML input (attribute order may vary)
+  const inputMatch = content.match(
+    new RegExp(`name="${escapedName}"[^>]*\\svalue="([^"]*)"`)
+  ) || content.match(
+    new RegExp(`value="([^"]*)"[^>]*\\sname="${escapedName}"`)
+  );
+  return inputMatch ? inputMatch[1] : null;
+}
+
+/**
+ * Extracts the employee/user id used in the attendance grid control ids.
+ * @param {string} content - HTML content
+ * @returns {string|null} The user id, or null if not found
+ */
+function extractUserId(content) {
+  const scriptMatch = content.match(/var userId\s*=\s*'(\d+)'/);
+  if (scriptMatch) {
+    return scriptMatch[1];
+  }
+  const hiddenMatch = content.match(/name="ctl00\$mp\$Strip\$hCurrentItemId"[^>]*value="(\d+)"/);
+  return hiddenMatch ? hiddenMatch[1] : null;
+}
+
+/**
+ * Reads the currently displayed month from the calendar page state.
+ * @param {string} content - HTML or async delta content
+ * @returns {Object|null} { day, month, year, value: "dd/mm/yyyy" } or null
+ */
+function extractCurrentMonthValue(content) {
+  const match = content.match(
+    /name="ctl00\$mp\$currentMonth"[^>]*value="(\d{2})\/(\d{2})\/(\d{4})"/
+  );
+  if (!match) {
+    return null;
+  }
+  return {
+    day: parseInt(match[1]),
+    month: parseInt(match[2]),
+    year: parseInt(match[3]),
+    value: `${match[1]}/${match[2]}/${match[3]}`,
+  };
+}
+
+/**
+ * Computes a month string (dd/mm/yyyy, day = 01) offset by a number of months.
+ * @param {number} month - Source month (1-12)
+ * @param {number} year - Source year
+ * @param {number} monthsBack - Months to subtract
+ * @returns {string} Target month as "01/MM/YYYY"
+ */
+function computeMonthString(month, year, monthsBack) {
+  // month is 1-based; build a Date and shift by months
+  const target = new Date(year, month - 1 - monthsBack, 1);
+  const mm = String(target.getMonth() + 1).padStart(2, "0");
+  const yyyy = target.getFullYear();
+  return `01/${mm}/${yyyy}`;
+}
+
+/**
+ * Navigates the calendar page to a specific month via an ASP.NET async
+ * postback and returns the response content.
+ * @param {string} cookieString - Authentication cookies
+ * @param {string} previousContent - Content of the currently displayed page
+ * @param {string} targetMonth - Target month as "01/MM/YYYY"
+ * @returns {Promise<string>} The async postback response content
+ */
+async function navigateToMonth(cookieString, previousContent, targetMonth) {
+  const viewState = extractHiddenField(previousContent, "__VIEWSTATE");
+  const viewStateGenerator =
+    extractHiddenField(previousContent, "__VIEWSTATEGENERATOR") || "";
+  const currentMonth = extractCurrentMonthValue(previousContent);
+  const userId = extractUserId(previousContent);
+
+  if (!viewState || !currentMonth) {
+    throw new Error(
+      "לא ניתן לנווט לחודש קודם: חסרים נתוני מצב מהדף (__VIEWSTATE/currentMonth)"
+    );
+  }
+
+  // Grid control ids are namespaced by user id and the displayed year/month
+  const gridPrefix = userId
+    ? `ctl00$mp$RG_Days_${userId}_${currentMonth.year}_${String(currentMonth.month).padStart(2, "0")}`
+    : null;
+
+  const form = new URLSearchParams();
+  form.append("ctl00$ms", "ctl00$mp$calendarUpdator|ctl00_mp_calendar_monthChanged");
+  form.append("__EVENTTARGET", "ctl00_mp_calendar_monthChanged");
+  form.append("__EVENTARGUMENT", targetMonth);
+  form.append("Time", "9");
+  form.append("DisableTimeout", "true");
+  form.append("__LASTFOCUS", "");
+  form.append("ctl00_datePickerTmp_State", "");
+  form.append("__VIEWSTATE", viewState);
+  form.append("H-XSRF-Token", "");
+  form.append("__VIEWSTATEGENERATOR", viewStateGenerator);
+  form.append("ctl00$mp$Strip$blSaveList", "-1");
+  form.append("ctl00$mp$Strip$ACESearch_Value", "");
+  form.append("ctl00$mp$Strip$hSelectedIds", "");
+  if (userId) {
+    form.append("ctl00$mp$Strip$hCurrentItemId", userId);
+  }
+  form.append("ctl00$mp$currentMonth", currentMonth.value);
+  if (gridPrefix) {
+    form.append(`${gridPrefix}$errorMode`, "");
+    form.append(`${gridPrefix}$cellOf_Symbol.SymbolId_EmployeeReports_row_0_0$Symbol.SymbolId_EmployeeReports_row_0_0`, "0");
+  }
+  form.append("ctl00$mp$scriptBox", "");
+  form.append("ctl00$datePickerTmp$jdatePicker", "");
+  form.append("ctl00$DummyAutoComplete_Value", "");
+  form.append("hiddenInputToUpdateATBuffer_CommonToolkitScripts", "1");
+  form.append("__ASYNCPOST", "true");
+  form.append("__NextBtnState", "false");
+  form.append("__PrevBtnState", "false");
+  form.append("ReportPageMode", "7");
+
+  const response = await fetch(HILAN_API.ATTENDANCE, {
+    method: "POST",
+    headers: {
+      Cookie: cookieString,
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      Accept: "*/*",
+      "Accept-Language": "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7",
+      "X-MicrosoftAjax": "Delta=true",
+      "X-Requested-With": "XMLHttpRequest",
+      Referer: HILAN_API.ATTENDANCE,
+      Origin: "https://motorola.net.hilan.co.il",
+    },
+    body: form.toString(),
+    redirect: "follow",
+  });
+
+  if (!response.ok) {
+    throw new Error(`נכשל לנווט לחודש ${targetMonth}: ${response.status}`);
+  }
+
+  return response.text();
+}
+
+/**
+ * Fetches the current month plus a number of previous months.
+ * @param {string} cookieString - Authentication cookies
+ * @param {string} currentMonthHtml - HTML of the current month (initial GET)
+ * @param {number} previousMonthsCount - How many previous months to fetch
+ * @returns {Promise<Array>} Array of { month, year, entries } newest-first
+ */
+async function fetchMonths(cookieString, currentMonthHtml, previousMonthsCount) {
+  const months = [];
+
+  // Current month (already fetched)
+  const current = extractMonthYear(currentMonthHtml);
+  months.push({
+    month: current.month,
+    year: current.year,
+    entries: extractWorkHours(currentMonthHtml),
+  });
+
+  // Walk back one month at a time, chaining the page state
+  let previousContent = currentMonthHtml;
+  for (let i = 1; i <= previousMonthsCount; i++) {
+    const source = extractCurrentMonthValue(previousContent) || {
+      month: current.month,
+      year: current.year,
+    };
+    const targetMonth = computeMonthString(source.month, source.year, 1);
+
+    console.log(`\n=== Fetching previous month (${targetMonth}) ===`);
+    try {
+      const monthContent = await navigateToMonth(
+        cookieString,
+        previousContent,
+        targetMonth
+      );
+      const { month, year } = extractMonthYear(monthContent);
+      const entries = extractWorkHours(monthContent);
+      console.log(`✅ Month ${month}/${year}: ${entries.length} entries`);
+
+      months.push({ month, year, entries });
+      previousContent = monthContent;
+    } catch (error) {
+      console.log(`⚠️  Failed to fetch ${targetMonth}: ${error.message}`);
+      break;
+    }
+  }
+
+  return months;
+}
+
+/**
  * Validates that time entries were found
  * @param {Array} timeEntries - Array of time entries
  * @param {number} month - Current month
@@ -538,10 +746,10 @@ app.post("/api/hilan-data", async (req, res) => {
     // Step 3: Extract cookies
     const cookieString = extractCookies(loginResponse);
 
-    // Step 4: Fetch attendance page
+    // Step 4: Fetch attendance page (current month)
     const htmlContent = await fetchAttendancePage(cookieString);
 
-    // Step 5: Extract month/year
+    // Step 5: Extract month/year for the current month
     console.log("\n=== STEP 5: Extracting month/year ===");
     const { month, year } = extractMonthYear(htmlContent);
     console.log("Calendar displaying:", { month, year });
@@ -551,37 +759,38 @@ app.post("/api/hilan-data", async (req, res) => {
     const currentYear = now.getFullYear();
     console.log("Current date:", { currentMonth, currentYear });
 
-    // Step 6: Extract work hours
-    console.log("\n=== STEP 6: Extracting work hours ===");
-    const timeEntries = extractWorkHours(htmlContent);
-    console.log("Time entries found:", timeEntries.length);
+    // Step 6: Fetch current month plus previous months
+    console.log("\n=== STEP 6: Fetching months (current + previous) ===");
+    const rawMonths = await fetchMonths(
+      cookieString,
+      htmlContent,
+      PREVIOUS_MONTHS_TO_FETCH
+    );
 
-    // Validate entries
-    validateTimeEntries(timeEntries, month, year);
+    // Validate that the current month returned entries
+    validateTimeEntries(rawMonths[0].entries, month, year);
 
-    console.log("✅ Time entries extracted successfully");
-    console.log("Sample entries (first 3):");
-    timeEntries.slice(0, 3).forEach((entry, index) => {
+    // Step 7: Calculate totals per month
+    console.log("\n=== STEP 7: Calculating total time per month ===");
+    const months = rawMonths.map((m) => {
+      const result = calculateTotalTime(m.entries);
       console.log(
-        `  ${index + 1}. Date: ${entry.date}, Day: ${entry.day}, Time: ${entry.time}, Holiday: ${entry.holidayName || "N/A"}`
+        `  ${m.month}/${m.year}: ${result.formatted} (${result.entries.length} days)`
       );
+      return {
+        month: m.month,
+        year: m.year,
+        data: result,
+      };
     });
-
-    // Step 7: Calculate totals
-    console.log("\n=== STEP 7: Calculating total time ===");
-    const result = calculateTotalTime(timeEntries);
-    console.log("✅ Calculation complete");
-    console.log("Results:");
-    console.log("  Total hours:", result.totalHours);
-    console.log("  Total minutes:", result.totalMinutes);
-    console.log("  Formatted:", result.formatted);
-    console.log("  Duration:", result.duration);
-    console.log("  Monthly requirement:", result.monthlyRequirement);
+    console.log("✅ Calculation complete for", months.length, "month(s)");
 
     console.log("\n=== SUCCESS: Returning data to client ===");
+    // `data` keeps backward compatibility (current month); `months` carries all
     return res.json({
       success: true,
-      data: result,
+      data: months[0].data,
+      months,
     });
     
   } catch (error) {

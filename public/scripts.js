@@ -37,6 +37,9 @@ const DOM = {
   calendarView: document.getElementById('calendar-view'),
   calendarGrid: document.getElementById('calendar-grid'),
   calendarMonthName: document.getElementById('calendar-month-name'),
+
+  // Month switcher
+  monthSwitcher: document.getElementById('month-switcher'),
   
   // Status cards
   requiredHoursCard: document.getElementById('required-hours-card'),
@@ -97,7 +100,11 @@ const DIMENSIONS = {
 let state = {
   workingDayTypes: {},
   allMonthEntries: [],
-  currentView: VIEWS.CALENDAR
+  currentView: VIEWS.CALENDAR,
+  // All fetched months (newest-first): [{ month, year, data }]
+  months: [],
+  // Index into state.months of the currently displayed month
+  activeMonthIndex: 0
 };
 
 // ============================================================================
@@ -866,20 +873,91 @@ function updateSummaryInfo(result) {
 }
 
 /**
- * Displays work hours data
+ * Displays work hours data for a single month
  * @param {Object} result - Work hours calculation result
  */
 function displayWorkHours(result) {
   DOM.hoursTableBody.innerHTML = '';
-  
+
   state.allMonthEntries = result.entries;
-  
+
   initializeDayTypes();
   displayTableRows();
   updateSummaryInfo(result);
-  
+
   if (state.currentView === VIEWS.CALENDAR) {
     generateCalendarView();
+  }
+}
+
+// ============================================================================
+// MONTH SWITCHER
+// ============================================================================
+
+/**
+ * Builds a Hebrew label for a fetched month
+ * @param {Object} monthInfo - { month, year }
+ * @returns {string} Label such as "מאי 2026"
+ */
+function formatMonthLabel(monthInfo) {
+  const name = HEBREW_MONTHS[monthInfo.month - 1] || `חודש ${monthInfo.month}`;
+  return `${name} ${monthInfo.year}`;
+}
+
+/**
+ * Renders the month switcher buttons
+ */
+function renderMonthSwitcher() {
+  if (!DOM.monthSwitcher) return;
+
+  DOM.monthSwitcher.innerHTML = '';
+
+  // Hide the switcher entirely when there is only one month
+  if (!state.months || state.months.length <= 1) {
+    DOM.monthSwitcher.classList.add('hidden');
+    return;
+  }
+
+  DOM.monthSwitcher.classList.remove('hidden');
+
+  state.months.forEach((monthInfo, index) => {
+    const button = document.createElement('button');
+    button.className = 'month-switcher-btn';
+    if (index === state.activeMonthIndex) {
+      button.classList.add('active');
+    }
+    button.textContent = formatMonthLabel(monthInfo);
+    button.addEventListener('click', () => switchToMonth(index));
+    DOM.monthSwitcher.appendChild(button);
+  });
+}
+
+/**
+ * Switches the displayed data to a different fetched month
+ * @param {number} index - Index into state.months
+ */
+function switchToMonth(index) {
+  if (index < 0 || index >= state.months.length || index === state.activeMonthIndex) {
+    return;
+  }
+
+  state.activeMonthIndex = index;
+  displayWorkHours(state.months[index].data);
+  renderMonthSwitcher();
+}
+
+/**
+ * Loads all fetched months and displays the most recent one
+ * @param {Array} months - Array of { month, year, data }
+ */
+function loadMonths(months) {
+  state.months = Array.isArray(months) && months.length ? months : [];
+  state.activeMonthIndex = 0;
+
+  renderMonthSwitcher();
+
+  if (state.months.length > 0) {
+    displayWorkHours(state.months[0].data);
   }
 }
 
@@ -1020,8 +1098,17 @@ async function fetchHilanData(credentials) {
     if (!response.ok || !data.success) {
       throw new Error(data.error || 'נכשל לקבל נתונים מחילן');
     }
-    
-    displayWorkHours(data.data);
+
+    // Reset per-day overrides for a fresh fetch
+    state.workingDayTypes = {};
+
+    if (Array.isArray(data.months) && data.months.length) {
+      loadMonths(data.months);
+    } else {
+      // Backward compatibility: single-month response
+      loadMonths([{ data: data.data }]);
+    }
+
     showResults();
     
   } catch (error) {
