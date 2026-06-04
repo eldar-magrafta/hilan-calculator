@@ -414,6 +414,11 @@ input:focus {
   gap: var(--space-sm);
   justify-content: center;
   padding: var(--space-md) var(--space-lg) 0;
+  /* Keep clear of the summary cards, which lift on hover and would
+     otherwise overlap the buttons */
+  margin-bottom: var(--space-md);
+  position: relative;
+  z-index: 2;
 }
 
 .month-switcher-btn {
