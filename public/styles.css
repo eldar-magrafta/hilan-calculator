@@ -353,6 +353,7 @@ input:focus {
 
 .action-btn:hover,
 .vacation-btn:hover,
+.sick-btn:hover,
 .workday-btn:hover {
   transform: translateY(-2px);
   margin-bottom: 0;
@@ -365,6 +366,15 @@ input:focus {
 
 .vacation-btn:hover {
   background-color: #ffbc1f;
+}
+
+.sick-btn {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.sick-btn:hover {
+  background-color: #f56a8c;
 }
 
 .workday-btn {
@@ -977,7 +987,8 @@ tfoot tr {
   display: none;
 }
 
-.calendar-day.vacation-day .vacation-btn {
+.calendar-day.vacation-day .vacation-btn,
+.calendar-day.vacation-day .sick-btn {
   display: none;
 }
 
@@ -987,10 +998,6 @@ tfoot tr {
 
 .calendar-day:not(.vacation-day) .workday-btn {
   display: none;
-}
-
-.calendar-day:not(.vacation-day) .vacation-btn {
-  max-width: 100%;
 }
 
 /* Form Elements */

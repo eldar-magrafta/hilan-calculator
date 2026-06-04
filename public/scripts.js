@@ -57,6 +57,12 @@ const DAY_TYPES = {
   VACATION: 'חופש'
 };
 
+// Visible badge labels for an absence day (same business meaning: non-working day)
+const ABSENCE_LABELS = {
+  VACATION: 'חופשה',
+  SICK: 'מחלה'
+};
+
 const STATUS_CLASSES = {
   LOW: 'low-completion',
   MID: 'mid-completion',
@@ -99,6 +105,8 @@ const DIMENSIONS = {
 
 let state = {
   workingDayTypes: {},
+  // Per-date badge label for absence days (date -> ABSENCE_LABELS value)
+  absenceLabels: {},
   allMonthEntries: [],
   currentView: VIEWS.CALENDAR,
   // All fetched months (newest-first): [{ month, year, data }]
@@ -234,13 +242,14 @@ function updateElementClass(element, classesToRemove, classToAdd) {
 }
 
 /**
- * Creates a vacation badge element
+ * Creates an absence badge element (vacation or sick leave)
+ * @param {string} [label] - Badge label (defaults to vacation)
  * @returns {HTMLElement} Badge element
  */
-function createVacationBadge() {
+function createVacationBadge(label) {
   const badge = document.createElement('span');
   badge.className = 'vacation-badge';
-  badge.textContent = 'חופשה';
+  badge.textContent = label || ABSENCE_LABELS.VACATION;
   badge.style.opacity = '0';
   
   // Smooth transition
@@ -330,10 +339,18 @@ function syncTableView() {
  * Handles day type change (workday/vacation)
  * @param {string} date - Date string
  * @param {string} type - Day type
+ * @param {string} [absenceLabel] - Badge label when marking an absence day
  */
-function handleDayTypeChange(date, type) {
+function handleDayTypeChange(date, type, absenceLabel) {
   state.workingDayTypes[date] = type;
-  
+
+  // Track which absence label to show (vacation/sick); clear on workday
+  if (type === DAY_TYPES.VACATION) {
+    state.absenceLabels[date] = absenceLabel || ABSENCE_LABELS.VACATION;
+  } else {
+    delete state.absenceLabels[date];
+  }
+
   // Delay DOM updates to avoid event conflicts
   setTimeout(() => {
     recalculateRequiredHours();
@@ -357,13 +374,19 @@ function updateCalendarDayType(date, type) {
   const isWeekendDay = isDayOfWeekWeekend(dayOfWeek);
   
   const existingBadge = calendarDay.querySelector('.vacation-badge:not(.holiday-badge)');
-  
+  const absenceLabel = state.absenceLabels[date] || ABSENCE_LABELS.VACATION;
+
   if (type === DAY_TYPES.VACATION) {
     calendarDay.classList.add('vacation-day');
-    
-    if (!isWeekendDay && !existingBadge) {
-      const badge = createVacationBadge();
-      calendarDay.insertBefore(badge, calendarDay.firstChild);
+
+    if (!isWeekendDay) {
+      if (existingBadge) {
+        // Keep the badge in sync when switching between vacation and sick
+        existingBadge.textContent = absenceLabel;
+      } else {
+        const badge = createVacationBadge(absenceLabel);
+        calendarDay.insertBefore(badge, calendarDay.firstChild);
+      }
     }
   } else {
     calendarDay.classList.remove('vacation-day');
@@ -608,15 +631,23 @@ function countRegularWorkdays() {
 function addDayActionButtons(dayCell, dateString) {
   const dayActions = document.createElement('div');
   dayActions.className = 'day-actions';
-  
+
   const vacationBtn = document.createElement('button');
   vacationBtn.className = 'action-btn vacation-btn';
   vacationBtn.innerHTML = '<i class="fas fa-umbrella-beach"></i> סמן כחופשה';
   vacationBtn.setAttribute('data-date', dateString);
   vacationBtn.addEventListener('click', () => {
-    handleDayTypeChange(dateString, DAY_TYPES.VACATION);
+    handleDayTypeChange(dateString, DAY_TYPES.VACATION, ABSENCE_LABELS.VACATION);
   });
-  
+
+  const sickBtn = document.createElement('button');
+  sickBtn.className = 'action-btn sick-btn';
+  sickBtn.innerHTML = '<i class="fas fa-umbrella-beach"></i> סמן כמחלה';
+  sickBtn.setAttribute('data-date', dateString);
+  sickBtn.addEventListener('click', () => {
+    handleDayTypeChange(dateString, DAY_TYPES.VACATION, ABSENCE_LABELS.SICK);
+  });
+
   const workdayBtn = document.createElement('button');
   workdayBtn.className = 'action-btn workday-btn';
   workdayBtn.innerHTML = '<i class="fas fa-briefcase"></i> סמן כיום עבודה';
@@ -624,8 +655,9 @@ function addDayActionButtons(dayCell, dateString) {
   workdayBtn.addEventListener('click', () => {
     handleDayTypeChange(dateString, DAY_TYPES.REGULAR);
   });
-  
+
   dayActions.appendChild(vacationBtn);
+  dayActions.appendChild(sickBtn);
   dayActions.appendChild(workdayBtn);
   dayCell.appendChild(dayActions);
 }
@@ -682,7 +714,7 @@ function createCalendarDay(dayOfMonth, month, year, entriesByDay, currentDate) {
   if (holidayName) {
     dayCell.appendChild(createHolidayBadge(holidayName));
   } else if (dayType === DAY_TYPES.VACATION && !isWeekendDay) {
-    dayCell.appendChild(createVacationBadge());
+    dayCell.appendChild(createVacationBadge(state.absenceLabels[dateString]));
   }
   
   // Add work hours
@@ -1101,6 +1133,7 @@ async function fetchHilanData(credentials) {
 
     // Reset per-day overrides for a fresh fetch
     state.workingDayTypes = {};
+    state.absenceLabels = {};
 
     if (Array.isArray(data.months) && data.months.length) {
       loadMonths(data.months);
