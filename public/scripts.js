@@ -353,11 +353,11 @@ function syncTableView() {
   document.querySelectorAll('.day-type-select').forEach(select => {
     const date = select.dataset.date;
     if (state.workingDayTypes[date]) {
-      select.value = state.workingDayTypes[date];
-      
+      select.value = getDayTypeLabel(date);
+
       const row = select.closest('tr');
       if (row) {
-        row.classList.toggle('vacation-day-row', 
+        row.classList.toggle('vacation-day-row',
           state.workingDayTypes[date] === DAY_TYPES.VACATION);
       }
     }
@@ -367,6 +367,36 @@ function syncTableView() {
 // ============================================================================
 // DATA MANAGEMENT
 // ============================================================================
+
+/**
+ * Returns the display label for a date's day type. Doubles as the value of
+ * the table's day-type <select>:
+ *   - work day -> "יום עבודה"
+ *   - vacation -> "חופשה"   (ABSENCE_LABELS.VACATION)
+ *   - sick     -> "מחלה"    (ABSENCE_LABELS.SICK)
+ * @param {string} date - Date string
+ * @returns {string} The day-type label
+ */
+function getDayTypeLabel(date) {
+  if (state.workingDayTypes[date] === DAY_TYPES.VACATION) {
+    return state.absenceLabels[date] || ABSENCE_LABELS.VACATION;
+  }
+  return DAY_TYPES.REGULAR;
+}
+
+/**
+ * Routes a table day-type <select> value to the business day-type change.
+ * Both absence labels map to the same non-working (vacation) business type.
+ * @param {string} date - Date string
+ * @param {string} value - Selected option value (label)
+ */
+function handleDayTypeSelectChange(date, value) {
+  if (value === DAY_TYPES.REGULAR) {
+    handleDayTypeChange(date, DAY_TYPES.REGULAR);
+  } else {
+    handleDayTypeChange(date, DAY_TYPES.VACATION, value);
+  }
+}
 
 /**
  * Handles day type change (workday/vacation)
@@ -438,9 +468,9 @@ function updateCalendarDayType(date, type) {
 function updateTableDayType(date, type) {
   const tableSelect = document.querySelector(`.day-type-select[data-date="${date}"]`);
   if (!tableSelect) return;
-  
-  tableSelect.value = type;
-  
+
+  tableSelect.value = getDayTypeLabel(date);
+
   const row = tableSelect.closest('tr');
   if (row) {
     row.classList.toggle('vacation-day-row', type === DAY_TYPES.VACATION);
@@ -899,10 +929,12 @@ function createTableRow(entry, currentDate) {
   if (isEntryWeekend) {
     state.workingDayTypes[entry.date] = DAY_TYPES.VACATION;
   } else {
+    const selectedLabel = getDayTypeLabel(entry.date);
     dayTypeHTML = `
       <select class="day-type-select" data-date="${entry.date}">
-        <option value="${DAY_TYPES.REGULAR}" ${state.workingDayTypes[entry.date] === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
-        <option value="${DAY_TYPES.VACATION}" ${state.workingDayTypes[entry.date] === DAY_TYPES.VACATION ? 'selected' : ''}>${DAY_TYPES.VACATION}</option>
+        <option value="${DAY_TYPES.REGULAR}" ${selectedLabel === DAY_TYPES.REGULAR ? 'selected' : ''}>${DAY_TYPES.REGULAR}</option>
+        <option value="${ABSENCE_LABELS.VACATION}" ${selectedLabel === ABSENCE_LABELS.VACATION ? 'selected' : ''}>${ABSENCE_LABELS.VACATION}</option>
+        <option value="${ABSENCE_LABELS.SICK}" ${selectedLabel === ABSENCE_LABELS.SICK ? 'selected' : ''}>${ABSENCE_LABELS.SICK}</option>
       </select>
     `;
   }
@@ -949,8 +981,7 @@ function addDayTypeSelectListeners() {
   document.querySelectorAll('.day-type-select').forEach(select => {
     select.addEventListener('change', function() {
       const date = this.dataset.date;
-      const type = this.value;
-      handleDayTypeChange(date, type);
+      handleDayTypeSelectChange(date, this.value);
     });
   });
 }
@@ -1085,8 +1116,11 @@ function exportToCsv() {
   Array.from(DOM.hoursTableBody.querySelectorAll('tr')).forEach(row => {
     const cells = row.querySelectorAll('td');
     const dayTypeSelect = row.querySelector('.day-type-select');
-    const dayType = dayTypeSelect ? dayTypeSelect.value : DAY_TYPES.REGULAR;
-    
+    // Prefer the select value (work / חופשה / מחלה); weekend rows have no
+    // select, so fall back to the stored label for that date.
+    const date = cells[0].textContent;
+    const dayType = dayTypeSelect ? dayTypeSelect.value : getDayTypeLabel(date);
+
     const rowData = [
       `"${cells[0].textContent}"`,
       `"${cells[1].textContent}"`,
