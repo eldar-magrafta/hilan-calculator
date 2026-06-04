@@ -25,6 +25,7 @@ const DOM = {
   dailyRequiredHoursElement: document.getElementById('daily-required-hours'),
   monthlyRequirementElement: document.getElementById('monthly-requirement'),
   remainingHoursElement: document.getElementById('remaining-hours'),
+  remainingHoursTitle: document.getElementById('remaining-hours-title'),
   completionPercentageElement: document.getElementById('completion-percentage'),
   
   // Buttons
@@ -185,12 +186,44 @@ function formatDateString(day, month, year) {
  */
 function calculateDailyAverage(totalMinutes, days) {
   if (!days || days === 0) return '0:00';
-  
+
   const avgMinutes = Math.round(totalMinutes / days);
   const hours = Math.floor(avgMinutes / 60);
   const minutes = avgMinutes % 60;
-  
+
   return `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+}
+
+/**
+ * Determines whether the currently active month is fully in the past
+ * (i.e. an earlier month than the current one).
+ * @returns {boolean} True if the active month is a past month
+ */
+function isActiveMonthInPast() {
+  const active = state.months[state.activeMonthIndex];
+  if (!active) return false;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  return (
+    active.year < currentYear ||
+    (active.year === currentYear && active.month < currentMonth)
+  );
+}
+
+/**
+ * Formats an end-of-month balance with a leading +/- sign.
+ * @param {number} balanceMinutes - Signed balance in minutes (positive = surplus)
+ * @returns {string} Formatted Hebrew balance, e.g. "+ 3 שעות ו-15 דקות"
+ */
+function formatBalance(balanceMinutes) {
+  const sign = balanceMinutes >= 0 ? '+' : '-';
+  const absMinutes = Math.abs(balanceMinutes);
+  const hours = Math.floor(absMinutes / 60);
+  const minutes = absMinutes % 60;
+  return `${sign} ${formatHoursMinutes(hours, minutes)}`;
 }
 
 /**
@@ -580,13 +613,59 @@ function recalculateRequiredHours() {
   
   // Update UI
   DOM.monthlyRequirementElement.textContent = `${totalRequiredHours} שעות ${totalRequiredRemainingMinutes > 0 ? `${totalRequiredRemainingMinutes} דקות` : ''}`;
-  DOM.remainingHoursElement.textContent = `${remainingHours} שעות ${remainingMinutes > 0 ? `${remainingMinutes} דקות` : ''}`;
-  
+
+  const isPastMonth = isActiveMonthInPast();
+  applyPastMonthAdjustments(isPastMonth);
+
+  if (isPastMonth) {
+    // For a completed month, show the end-of-month balance (+ surplus / - deficit)
+    const balanceMinutes = totalCompletedMinutes - totalRequiredMinutes;
+    DOM.remainingHoursElement.textContent = formatBalance(balanceMinutes);
+    updateBalanceCard(balanceMinutes);
+  } else {
+    DOM.remainingHoursElement.textContent = `${remainingHours} שעות ${remainingMinutes > 0 ? `${remainingMinutes} דקות` : ''}`;
+    updateRemainingHoursCard(remainingRequiredMinutes);
+  }
+
   const formattedDailyMinutes = dailyRequiredMinutes < 10 ? `0${dailyRequiredMinutes}` : dailyRequiredMinutes;
   DOM.dailyRequiredHoursElement.textContent = `${dailyRequiredHours}:${formattedDailyMinutes}`;
-  
+
   updateCompletionPercentage(formattedPercentage, completionPercentage);
-  updateRemainingHoursCard(remainingRequiredMinutes);
+}
+
+/**
+ * Toggles the summary cards between current-month and past-month modes.
+ * Past month: hide the "avg hours remaining per day" card and relabel the
+ * remaining card to an end-of-month balance. Otherwise restore defaults.
+ * @param {boolean} isPastMonth - Whether the active month is in the past
+ */
+function applyPastMonthAdjustments(isPastMonth) {
+  if (DOM.dailyRequiredHoursCard) {
+    DOM.dailyRequiredHoursCard.classList.toggle('hidden', isPastMonth);
+  }
+  if (DOM.remainingHoursTitle) {
+    DOM.remainingHoursTitle.textContent = isPastMonth
+      ? 'מאזן שעות בסוף החודש'
+      : 'שעות שנותרו לביצוע';
+  }
+}
+
+/**
+ * Applies balance-based styling to the remaining-hours card.
+ * @param {number} balanceMinutes - Signed balance in minutes (positive = surplus)
+ */
+function updateBalanceCard(balanceMinutes) {
+  if (!DOM.remainingHoursCard) return;
+
+  updateElementClass(
+    DOM.remainingHoursCard,
+    [STATUS_CLASSES.COMPLETED, STATUS_CLASSES.NEARLY_COMPLETED, STATUS_CLASSES.PENDING]
+  );
+
+  // Surplus (or exactly met) reads as completed; deficit reads as pending
+  DOM.remainingHoursCard.classList.add(
+    balanceMinutes >= 0 ? STATUS_CLASSES.COMPLETED : STATUS_CLASSES.PENDING
+  );
 }
 
 /**
