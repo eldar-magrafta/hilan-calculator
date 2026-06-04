@@ -642,7 +642,7 @@ function addDayActionButtons(dayCell, dateString) {
 
   const sickBtn = document.createElement('button');
   sickBtn.className = 'action-btn sick-btn';
-  sickBtn.innerHTML = '<i class="fas fa-umbrella-beach"></i> סמן כמחלה';
+  sickBtn.innerHTML = '<i class="fas fa-thermometer"></i> סמן כמחלה';
   sickBtn.setAttribute('data-date', dateString);
   sickBtn.addEventListener('click', () => {
     handleDayTypeChange(dateString, DAY_TYPES.VACATION, ABSENCE_LABELS.SICK);
