@@ -141,6 +141,19 @@ function extractMonthYear(htmlContent) {
 }
 
 /**
+ * Decodes common HTML entities found in Hilan's calendar markup
+ * @param {string} text - Raw text possibly containing HTML entities
+ * @returns {string} Decoded text
+ */
+function decodeHtmlEntities(text) {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&');
+}
+
+/**
  * Extracts work hours from HTML calendar content
  * @param {string} htmlContent - The HTML content
  * @returns {Array} Array of time entry objects
@@ -160,7 +173,7 @@ function extractWorkHours(htmlContent) {
   while ((cellMatch = cellPattern.exec(htmlContent)) !== null) {
     const offsetFromEpoch = parseInt(cellMatch[1]);
     const dayNumber = parseInt(cellMatch[2]);
-    const timeText = cellMatch[3].trim();
+    const timeText = decodeHtmlEntities(cellMatch[3].trim()).trim();
     
     // Skip if this day was already processed
     if (processedDays.has(offsetFromEpoch)) {
@@ -186,8 +199,8 @@ function extractWorkHours(htmlContent) {
     const isWeekend = exactDate.getDay() === 5 || exactDate.getDay() === 6;
     
     // Determine holiday name (if text is not a time and not empty)
-    const holidayName = (timeText !== '&nbsp;' && !timeValue) ? timeText : null;
-    const isHoliday = isWeekend || (timeText !== '&nbsp;' && !timeValue);
+    const holidayName = (timeText !== '' && !timeValue) ? timeText : null;
+    const isHoliday = isWeekend || (timeText !== '' && !timeValue);
     
     console.log(`  📅 Found day ${day}/${calculatedMonth}: time="${timeValue || timeText}", weekday="${dayOfWeek}"`);
     
