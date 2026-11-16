@@ -1219,6 +1219,38 @@ function resetForm() {
 }
 
 // ============================================================================
+// TWO-STEP (SMS) VERIFICATION
+// ============================================================================
+
+const TRUSTED_COOKIES_KEY = 'hilanTrustedCookies';
+let pendingVerificationMethod = null; // set when Hilan asked for a code
+
+/**
+ * Shows the login form again with the verification-code box visible
+ */
+function showVerificationStep(message, verificationMethod) {
+  pendingVerificationMethod = verificationMethod || 0;
+  document.getElementById('verification-message').textContent = message || '';
+  const codeInput = document.getElementById('verificationCode');
+  codeInput.value = '';
+  codeInput.required = true;
+  document.getElementById('verification-group').classList.remove('hidden');
+  resetForm();
+  codeInput.focus();
+}
+
+/**
+ * Hides the verification-code box (after success)
+ */
+function hideVerificationStep() {
+  pendingVerificationMethod = null;
+  const codeInput = document.getElementById('verificationCode');
+  codeInput.value = '';
+  codeInput.required = false;
+  document.getElementById('verification-group').classList.add('hidden');
+}
+
+// ============================================================================
 // API COMMUNICATION
 // ============================================================================
 
@@ -1231,18 +1263,33 @@ async function fetchHilanData(credentials) {
     showLoading();
     
     credentials.isEn = false;
-    
+
+    // Cookies from the last successful login - lets Hilan recognize this "saved browser"
+    const trustedCookies = localStorage.getItem(TRUSTED_COOKIES_KEY);
+    if (trustedCookies) credentials.trustedCookies = trustedCookies;
+
     const response = await fetch('/api/hilan-data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials)
     });
-    
+
     const data = await response.json();
-    
+
+    // Hilan sent an SMS code - show the code box and let the user submit again
+    if (data.needsVerification) {
+      showVerificationStep(data.error, data.verificationMethod);
+      return;
+    }
+
     if (!response.ok || !data.success) {
       throw new Error(data.error || 'נכשל לקבל נתונים מחילן');
     }
+
+    if (data.trustedCookies) {
+      localStorage.setItem(TRUSTED_COOKIES_KEY, data.trustedCookies);
+    }
+    hideVerificationStep();
 
     // Reset per-day overrides for a fresh fetch
     state.workingDayTypes = {};
@@ -1281,7 +1328,12 @@ function initEventListeners() {
       password: document.getElementById('password').value,
       isEn: false
     };
-    
+
+    if (pendingVerificationMethod !== null) {
+      credentials.verificationCode = document.getElementById('verificationCode').value;
+      credentials.verificationMethod = pendingVerificationMethod;
+    }
+
     fetchHilanData(credentials);
   });
   

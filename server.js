@@ -382,22 +382,34 @@ function calculateTotalTime(timeEntries) {
  * @returns {Promise<Object>} Login response data
  */
 async function performLogin(credentials) {
-  const { orgId, username, password } = credentials;
-  
+  const { orgId, username, password, verificationCode, verificationMethod, trustedCookies } = credentials;
+
   console.log("\n=== STEP 2: Attempting login ===");
-  
+  console.log("Has verification code:", Boolean(verificationCode), "| Has trusted cookies:", Boolean(trustedCookies));
+
+  const body = { orgId, username, password, isEn: false };
+  if (verificationCode) {
+    // Second round of a two-step login: same endpoint, plus the SMS code.
+    // saveBrowser=true asks Hilan to remember this "browser" so it may skip SMS next time.
+    Object.assign(body, {
+      isChangePassword: false,
+      verificationCode: String(verificationCode).trim(),
+      saveBrowser: true,
+      verificationMethod: Number(verificationMethod) || 0,
+    });
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  // Cookies from a previous successful login (may contain Hilan's "saved browser" marker)
+  if (trustedCookies) headers.Cookie = trustedCookies;
+
   const loginResponse = await fetch(HILAN_API.LOGIN, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      orgId,
-      username,
-      password,
-      isEn: false,
-    }),
+    headers,
+    body: JSON.stringify(body),
     redirect: "follow",
   });
 
@@ -413,8 +425,36 @@ async function performLogin(credentials) {
   console.log("Login data:", JSON.stringify(loginData).substring(0, 200) + "...");
 
   if (loginData.IsFail) {
-    console.log("❌ Login error:", loginData.ErrorMessage);
-    throw new Error(`שגיאת התחברות: ${loginData.ErrorMessage || "שגיאה לא ידועה"}`);
+    console.log("❌ Login not completed:", JSON.stringify(loginData));
+
+    // Hilan wants a one-time code (SMS / other method) before letting us in
+    if (loginData.IsShowVerificationCode || loginData.IsShowVerification || loginData.IsShowSmsLogin) {
+      const err = new Error(
+        verificationCode
+          ? "קוד האימות שגוי או שפג תוקפו. נסה שוב."
+          : loginData.VerificationCodeSentText || "נשלח אליך קוד אימות. הזן אותו כדי להמשיך."
+      );
+      err.statusCode = 200; // not a server crash - just "next step needed"
+      err.extra = {
+        needsVerification: true,
+        verificationMethod: loginData.VerificationMethod || 0,
+      };
+      throw err;
+    }
+
+    if (loginData.IsShowCaptcha) {
+      const err = new Error(
+        "חילן דורש אימות 'אני לא רובוט' (בדרך כלל אחרי ניסיונות כושלים). היכנס פעם אחת דרך אתר חילן, ואז נסה שוב כאן."
+      );
+      err.statusCode = 401;
+      throw err;
+    }
+
+    const err = new Error(
+      `שגיאת התחברות: ${loginData.ErrorMessage || `שגיאה לא ידועה (קוד ${loginData.Code})`}`
+    );
+    err.statusCode = 401;
+    throw err;
   }
   
   console.log("✅ Login successful");
@@ -740,7 +780,7 @@ function validateTimeEntries(timeEntries, month, year) {
  */
 app.post("/api/hilan-data", async (req, res) => {
   try {
-    const { orgId, username, password } = req.body;
+    const { orgId, username, password, verificationCode, verificationMethod, trustedCookies } = req.body;
 
     // Step 1: Validate input
     console.log("=== STEP 1: Validating input ===");
@@ -754,7 +794,9 @@ app.post("/api/hilan-data", async (req, res) => {
     console.log("✅ Input validated:", { orgId, username });
 
     // Step 2: Login
-    const loginResponse = await performLogin({ orgId, username, password });
+    const loginResponse = await performLogin({
+      orgId, username, password, verificationCode, verificationMethod, trustedCookies,
+    });
 
     // Step 3: Extract cookies
     const cookieString = extractCookies(loginResponse);
@@ -804,6 +846,8 @@ app.post("/api/hilan-data", async (req, res) => {
       success: true,
       data: months[0].data,
       months,
+      // Browser keeps these and sends them back next login, so Hilan may recognize the "saved browser"
+      trustedCookies: cookieString,
     });
     
   } catch (error) {
@@ -820,6 +864,9 @@ app.post("/api/hilan-data", async (req, res) => {
     
     if (error.debug) {
       errorResponse.debug = error.debug;
+    }
+    if (error.extra) {
+      Object.assign(errorResponse, error.extra);
     }
 
     return res.status(statusCode).json(errorResponse);
