@@ -382,36 +382,49 @@ function calculateTotalTime(timeEntries) {
  * @returns {Promise<Object>} Login response data
  */
 async function performLogin(credentials) {
-  const { orgId, username, password, verificationCode, verificationMethod, trustedCookies } = credentials;
+  const { orgId, username, password, verificationCode, verificationMethod } = credentials;
+  // Cookies we already hold: "saved browser" cookies from an earlier success,
+  // plus the session cookies Hilan handed out in step 1 of this login.
+  const requestCookies = mergeCookies(credentials.trustedCookies, credentials.loginCookies);
 
   console.log("\n=== STEP 2: Attempting login ===");
-  console.log("Has verification code:", Boolean(verificationCode), "| Has trusted cookies:", Boolean(trustedCookies));
+  console.log("Has verification code:", Boolean(verificationCode));
+  console.log("Sending cookie names:", cookieNames(requestCookies));
 
-  const body = { orgId, username, password, isEn: false };
+  // Same field order/format the real Hilan site sends (form-encoded, not JSON)
+  const body = new URLSearchParams({ orgId, username, password });
   if (verificationCode) {
     // Second round of a two-step login: same endpoint, plus the SMS code.
     // saveBrowser=true asks Hilan to remember this "browser" so it may skip SMS next time.
-    Object.assign(body, {
-      isChangePassword: false,
-      verificationCode: String(verificationCode).trim(),
-      saveBrowser: true,
-      verificationMethod: Number(verificationMethod) || 0,
-    });
+    body.append("isChangePassword", "false");
+    body.append("isEn", "false");
+    body.append("verificationCode", String(verificationCode).trim());
+    body.append("saveBrowser", "true");
+    body.append("verificationMethod", String(Number(verificationMethod) || 0));
+  } else {
+    body.append("isEn", "false");
   }
 
   const headers = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    Accept: "application/json, text/plain, */*",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    Origin: "https://motorola.net.hilan.co.il",
+    Referer: "https://motorola.net.hilan.co.il/",
   };
-  // Cookies from a previous successful login (may contain Hilan's "saved browser" marker)
-  if (trustedCookies) headers.Cookie = trustedCookies;
+  if (requestCookies) headers.Cookie = requestCookies;
 
   const loginResponse = await fetch(HILAN_API.LOGIN, {
     method: "POST",
     headers,
-    body: JSON.stringify(body),
+    body: body.toString(),
     redirect: "follow",
   });
+
+  // Everything Hilan set in this response, combined with what we sent
+  const responseCookies = cookiesFromResponse(loginResponse);
+  console.log("Received cookie names:", cookieNames(responseCookies));
+  const allCookies = mergeCookies(requestCookies, responseCookies);
 
   console.log("Login response status:", loginResponse.status);
 
@@ -438,6 +451,8 @@ async function performLogin(credentials) {
       err.extra = {
         needsVerification: true,
         verificationMethod: loginData.VerificationMethod || 0,
+        // The "deli ticket": browser must send these back together with the code
+        loginCookies: allCookies,
       };
       throw err;
     }
@@ -458,35 +473,44 @@ async function performLogin(credentials) {
   }
   
   console.log("✅ Login successful");
-  
-  return loginResponse;
+
+  if (!allCookies) {
+    throw new Error("לא התקבלו עוגיות מההתחברות");
+  }
+  return allCookies;
 }
 
 /**
- * Extracts and formats cookies from response
- * @param {Response} response - Fetch response object
- * @returns {string} Formatted cookie string
+ * Reads Set-Cookie headers from a response into a "name=value; name2=value2" string
+ * (empty string if none)
  */
-function extractCookies(response) {
-  console.log("\n=== STEP 3: Extracting cookies ===");
-  
-  const cookies = response.headers.raw()["set-cookie"];
+function cookiesFromResponse(response) {
+  const cookies = response.headers.raw()["set-cookie"] || [];
+  return cookies.map((cookie) => cookie.split(";")[0]).join("; ");
+}
 
-  if (!cookies || cookies.length === 0) {
-    console.log("❌ No cookies received");
-    throw new Error("לא התקבלו עוגיות מההתחברות");
+/**
+ * Combines several cookie strings; a later value for the same name wins
+ */
+function mergeCookies(...cookieStrings) {
+  const jar = new Map();
+  for (const str of cookieStrings) {
+    if (!str) continue;
+    for (const pair of str.split(";")) {
+      const trimmed = pair.trim();
+      const eq = trimmed.indexOf("=");
+      if (eq <= 0) continue;
+      jar.set(trimmed.slice(0, eq), trimmed.slice(eq + 1));
+    }
   }
+  return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
+}
 
-  console.log("✅ Cookies received:", cookies.length, "cookie(s)");
-  console.log("First cookie preview:", cookies[0].substring(0, 100) + "...");
-
-  const cookieString = cookies
-    .map((cookie) => cookie.split(";")[0])
-    .join("; ");
-
-  console.log("Cookie string length:", cookieString.length);
-  
-  return cookieString;
+/**
+ * Cookie names only (safe to log - no secret values)
+ */
+function cookieNames(cookieString) {
+  return cookieString ? cookieString.split(";").map((p) => p.split("=")[0].trim()) : [];
 }
 
 /**
@@ -780,7 +804,7 @@ function validateTimeEntries(timeEntries, month, year) {
  */
 app.post("/api/hilan-data", async (req, res) => {
   try {
-    const { orgId, username, password, verificationCode, verificationMethod, trustedCookies } = req.body;
+    const { orgId, username, password, verificationCode, verificationMethod, trustedCookies, loginCookies } = req.body;
 
     // Step 1: Validate input
     console.log("=== STEP 1: Validating input ===");
@@ -793,13 +817,10 @@ app.post("/api/hilan-data", async (req, res) => {
     }
     console.log("✅ Input validated:", { orgId, username });
 
-    // Step 2: Login
-    const loginResponse = await performLogin({
-      orgId, username, password, verificationCode, verificationMethod, trustedCookies,
+    // Step 2+3: Login and collect session cookies (step-1 cookies + whatever Hilan adds now)
+    const cookieString = await performLogin({
+      orgId, username, password, verificationCode, verificationMethod, trustedCookies, loginCookies,
     });
-
-    // Step 3: Extract cookies
-    const cookieString = extractCookies(loginResponse);
 
     // Step 4: Fetch attendance page (current month)
     const htmlContent = await fetchAttendancePage(cookieString);

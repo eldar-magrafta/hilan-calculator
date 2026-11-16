@@ -1224,12 +1224,14 @@ function resetForm() {
 
 const TRUSTED_COOKIES_KEY = 'hilanTrustedCookies';
 let pendingVerificationMethod = null; // set when Hilan asked for a code
+let pendingLoginCookies = null;       // session cookies from step 1, must go back with the code
 
 /**
  * Shows the login form again with the verification-code box visible
  */
 function showVerificationStep(message, verificationMethod) {
-  pendingVerificationMethod = verificationMethod || 0;
+  // Keep the method from the first round (a retry reply may report a different one)
+  if (pendingVerificationMethod === null) pendingVerificationMethod = verificationMethod || 0;
   document.getElementById('verification-message').textContent = message || '';
   const codeInput = document.getElementById('verificationCode');
   codeInput.value = '';
@@ -1244,6 +1246,7 @@ function showVerificationStep(message, verificationMethod) {
  */
 function hideVerificationStep() {
   pendingVerificationMethod = null;
+  pendingLoginCookies = null;
   const codeInput = document.getElementById('verificationCode');
   codeInput.value = '';
   codeInput.required = false;
@@ -1278,6 +1281,11 @@ async function fetchHilanData(credentials) {
 
     // Hilan sent an SMS code - show the code box and let the user submit again
     if (data.needsVerification) {
+      // Keep the step-1 session cookies only if this is the first round;
+      // a wrong code keeps the original session so the same SMS stays valid
+      if (!credentials.verificationCode || !pendingLoginCookies) {
+        pendingLoginCookies = data.loginCookies || null;
+      }
       showVerificationStep(data.error, data.verificationMethod);
       return;
     }
@@ -1332,6 +1340,7 @@ function initEventListeners() {
     if (pendingVerificationMethod !== null) {
       credentials.verificationCode = document.getElementById('verificationCode').value;
       credentials.verificationMethod = pendingVerificationMethod;
+      if (pendingLoginCookies) credentials.loginCookies = pendingLoginCookies;
     }
 
     fetchHilanData(credentials);
